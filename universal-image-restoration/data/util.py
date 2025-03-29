@@ -47,6 +47,7 @@ def get_image_paths(data_type, dataroot):
         if data_type == 'lmdb':
             paths, sizes = _get_paths_from_lmdb(dataroot)
             return paths, sizes
+        #TODO 获取图片路径
         elif data_type == 'img':
             paths = sorted(_get_paths_from_images(dataroot))
             return paths

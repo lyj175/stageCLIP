@@ -262,9 +262,10 @@ def main():
                 image_context = image_context.float()
                 degra_context = degra_context.float()
 
+            #TODO states:向GT靠近的LQ向量，带有噪声
             timesteps, states = sde.generate_random_states(x0=GT, mu=LQ)
-
             model.feed_data(states, LQ, GT, text_context=degra_context, image_context=image_context) # xt, mu, x0
+            #TODO 反向采样
             model.optimize_parameters(current_step, timesteps, sde)
             model.update_learning_rate(
                 current_step, warmup_iter=opt["train"]["warmup_iter"]

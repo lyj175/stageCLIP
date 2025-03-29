@@ -33,6 +33,7 @@ class DenoisingModel(BaseModel):
         train_opt = opt["train"]
 
         # define network and load pretrained models
+        #TODO diff model instance condiUNET
         self.model = networks.define_G(opt).to(self.device)
         if opt["dist"]:
             self.model = DistributedDataParallel(
@@ -127,13 +128,14 @@ class DenoisingModel(BaseModel):
         self.image_context = image_context
 
     def optimize_parameters(self, step, timesteps, sde=None):
-        sde.set_mu(self.condition)
+        sde.set_mu(self.condition)#TODO lq image as condition
 
         self.optimizer.zero_grad()
 
         timesteps = timesteps.to(self.device)
 
         # Get noise and score
+        #TODO guidance of clip.sde. denoising_model's implementation.timesteps size equals batchsize and sampling from random
         noise = sde.noise_fn(self.state, timesteps.squeeze(), text_context=self.text_context, image_context=self.image_context)
         score = sde.get_score_from_noise(noise, timesteps)
 

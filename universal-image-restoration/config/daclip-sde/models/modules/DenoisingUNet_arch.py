@@ -115,11 +115,13 @@ class ConditionalUNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h), 'reflect')
         return x
 
+    #TODO diffusion denoising with clip. xt
     def forward(self, xt, cond, time, text_context=None, image_context=None):
 
         if isinstance(time, int) or isinstance(time, float):
             time = torch.tensor([time]).to(xt.device)
-        
+
+        #TODO 与state操作相同，提供denoising 方向
         x = xt - cond
         x = torch.cat([x, cond], dim=1)
 
@@ -129,6 +131,7 @@ class ConditionalUNet(nn.Module):
         x = self.init_conv(x)
         x_ = x.clone()
 
+        #TODO 映射为符合图像尺寸的形状
         t = self.time_mlp(time) 
         if self.context_dim > 0:
             if self.use_degra_context and text_context is not None:
@@ -140,6 +143,7 @@ class ConditionalUNet(nn.Module):
                 image_context = image_context.unsqueeze(1)
 
         h = []
+        #TODO CrossAttention
         for b1, b2, attn, downsample in self.downs:
             x = b1(x, t)
             h.append(x)

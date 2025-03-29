@@ -164,7 +164,7 @@ class IRSDE(SDE):
         self.model = model
 
     #####################################
-
+    #TODO 恢复速度控制,返回修复的向量
     def mu_bar(self, x0, t):
         return self.mu + (x0 - self.mu) * torch.exp(-self.thetas_cumsum[t] * self.dt)
 
@@ -173,7 +173,7 @@ class IRSDE(SDE):
 
     def drift(self, x, t):
         return self.thetas[t] * (self.mu - x) * self.dt
-
+    #TODO implementation
     def sde_reverse_drift(self, x, score, t):
         return (self.thetas[t] * (self.mu - x) - self.sigmas[t]**2 * score) * self.dt
 
@@ -199,6 +199,12 @@ class IRSDE(SDE):
 
     def noise_fn(self, x, t, scale=1.0, **kwargs):
         # need to pre-set mu and score_model
+        #TODO model:(module): ConditionalUNet(
+        #   (init_conv): Conv2d(6, 64, kernel_size=(7, 7), stride=(1, 1), padding=(3, 3), b..., 1), stride=(1, 1), bias=False)
+        #   )
+        #   (final_conv): Conv2d(64, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # )
+        # Denoising_arch
         return self.model(x, self.mu, t * scale, **kwargs)
 
     # optimum x_{t-1}
@@ -354,8 +360,8 @@ class IRSDE(SDE):
 
     # sample states for training
     def generate_random_states(self, x0, mu, timesteps=None, T_start=1, T_end=-1):
-        x0 = x0.to(self.device)
-        mu = mu.to(self.device)
+        x0 = x0.to(self.device)#TODO hq
+        mu = mu.to(self.device)#TODO lq
 
         self.set_mu(mu)
 
@@ -363,7 +369,7 @@ class IRSDE(SDE):
             batch = x0.shape[0]
             T_end = self.T + 1 if T_end <= 1 else T_end + 1
             timesteps = torch.randint(T_start, T_end, (batch, 1, 1, 1)).long()
-
+        #TODO add guild content
         state_mean = self.mu_bar(x0, timesteps)
         noises = torch.randn_like(state_mean)
         noise_level = self.sigma_bar(timesteps)
