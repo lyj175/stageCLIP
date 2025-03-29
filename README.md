@@ -56,7 +56,7 @@ model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pr
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
 
 image = preprocess(Image.open("haze_01.png")).unsqueeze(0)
-degradations = ['motion-blurry','hazy','jpeg-compressed','low-light','noisy','raindrop','rainy','shadowed','snowy','uncompleted']
+degradations = ['motion-blurry','hazy_','jpeg-compressed','low-light','noisy','raindrop','rainy','shadowed','snowy','uncompleted']
 text = tokenizer(degradations)
 
 with torch.no_grad(), torch.cuda.amp.autocast():
@@ -82,7 +82,7 @@ datasets/universal/train
 |--motion-blurry
 |  |--LQ/*.png
 |  |--GT/*.png
-|--hazy
+|--hazy_
 |--jpeg-compressed
 |--low-light
 |--noisy

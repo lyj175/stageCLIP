@@ -52,6 +52,10 @@ def main():
     )
     parser.add_argument("--local_rank", type=int, default=0)
     args = parser.parse_args()
+    #TODO 多卡训练测试
+
+    #TODO 单卡训练测试
+    args.opt = 'options/train.yml'
     opt = option.parse(args.opt, is_train=True)
 
     # convert to NoneDict, which returns None for missing keys
@@ -202,7 +206,9 @@ def main():
 
     # clip_model, _preprocess = clip.load("ViT-B/32", device=device)
     if opt['path']['daclip'] is not None:
-        clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
+        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
+        clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32',pretrained=opt['path']['daclip'])
+        # clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
     else:
         clip_model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-32', pretrained='laion2b_s34b_b79k')
     tokenizer = open_clip.get_tokenizer('ViT-B-32')
@@ -344,6 +350,8 @@ def main():
                     logger.info("Saving models and training states.")
                     model.save(current_step)
                     model.save_training_state(epoch, current_step)
+        #TODO 测试，记得删除
+        break
 
     if rank <= 0:
         logger.info("Saving the final model.")

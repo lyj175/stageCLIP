@@ -2,8 +2,9 @@
 name: universal-ir
 use_tb_logger: true
 model: denoising
-distortion: [motion-blurry,hazy,jpeg-compressed,low-light,noisy,raindrop,rainy,shadowed,snowy,uncompleted]
-gpu_ids: [0]
+#distortion: [motion-blurry,hazy_,jpeg-compressed,low-light,noisy,raindrop,rainy,shadowed,snowy,uncompleted]
+distortion: [hazy]
+gpu_ids: [0,1]
 
 sde:
   max_sigma: 50
@@ -24,11 +25,13 @@ datasets:
   train:
     name: Train_Dataset
     mode: MD
-    dataroot: datasets/universal/train
+#    dataroot: datasets/universal/train
+    dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train
 
     use_shuffle: true
     n_workers: 16  # per GPU
-    batch_size: 16
+#    batch_size: 16
+    batch_size: 8
     patch_size: 256
     use_flip: true
     use_rot: true
@@ -36,7 +39,8 @@ datasets:
   val:
     name: Val_Dataset
     mode: MD
-    dataroot: datasets/universal/val
+#    dataroot: datasets/universal/val
+    dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
 
 
 #### network structures

@@ -3,7 +3,7 @@ import logging
 import math
 import os
 import time
-
+import sys
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -14,10 +14,11 @@ try:
 except ImportError:
     wandb = None
 
+sys.path.insert(0, "/home/lee/PycharmProjects/stageCLIP/da-clip/src")
 from open_clip import get_input_dtype, CLIP, CustomTextCLIP
-from .distributed import is_master
-from .zero_shot import zero_shot_eval
-from .precision import get_autocast
+from training.distributed import is_master
+from training.zero_shot import zero_shot_eval
+from training.precision import get_autocast
 
 
 class AverageMeter(object):

@@ -23,9 +23,12 @@ opt = option.parse(parser.parse_args().opt, is_train=False)
 opt = option.dict_to_nonedict(opt)
 
 # load pretrained model by default
-model = create_model(opt)
+model = create_model(opt)#TODO diffusion
 device = model.device
 
+#TODO daclip_VIT['daclip'] self trained
+# opt['path']['daclip'] = '/home/ligong3/l/daclip-uir/da-clip/src/logs/daclip_ViT-B-32_b784x1_lr2e-5_e50_17/checkpoints/epoch_30.pt'
+opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
 clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
 clip_model = clip_model.to(device)
 
@@ -51,12 +54,13 @@ def restore(image):
 
     LQ_tensor = torch.tensor(image, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
     noisy_tensor = sde.noise_state(LQ_tensor)
+    #TODO feed text and image context to diffusion to  computing
     model.feed_data(noisy_tensor, LQ_tensor, text_context=degra_context, image_context=image_context)
     model.test(sde)
     visuals = model.get_current_visuals(need_GT=False)
     output = util.tensor2img(visuals["Output"].squeeze())
     return output[:, :, [2, 1, 0]]
 
-examples=[os.path.join(os.path.dirname(__file__), f"images/{i}.jpg") for i in range(1, 11)]
+examples=[os.path.join(os.path.dirname(__file__), f"images/{i}.jpg") for i in range(1, 20)]
 interface = gr.Interface(fn=restore, inputs="image", outputs="image", title="Image Restoration with DA-CLIP", examples=examples)
 interface.launch()

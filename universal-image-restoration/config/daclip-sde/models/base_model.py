@@ -94,7 +94,10 @@ class BaseModel:
             network, DistributedDataParallel
         ):
             network = network.module
-        load_net = torch.load(load_path)
+        # load_net = torch.load(load_path)#TODO pretrained/universal-ir.pth
+        load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/universal-ir.pth')#TODO pretrained/universal-ir.pth
+        # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/universal-ir-raw.pth')#TODO pretrained/universal-ir.pth
+        # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/lastest_EMA.pth')#TODO pretrained/universal-ir.pth
         load_net_clean = OrderedDict()  # remove unnecessary 'module.'
         for k, v in load_net.items():
             if k.startswith("module."):

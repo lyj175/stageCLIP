@@ -3,14 +3,16 @@ import os
 import os.path as osp
 import sys
 import math
-
 import yaml
 
-try:
-    sys.path.append("../../")
-    from utils import OrderedYaml
-except ImportError:
-    pass
+# try:
+#     sys.path.append("../../")
+#     from utils import OrderedYaml
+# except ImportError:
+#     pass
+# 使用绝对路径导入
+sys.path.insert(0, "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration")
+from utils import OrderedYaml
 
 Loader, Dumper = OrderedYaml()
 
