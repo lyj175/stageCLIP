@@ -358,7 +358,7 @@ def main():
                     model.save(current_step)
                     model.save_training_state(epoch, current_step)
         #TODO 测试，记得删除
-        break
+        # break
 
     if rank <= 0:
         logger.info("Saving the final model.")

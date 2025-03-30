@@ -24,6 +24,14 @@ def clip_transform(np_image, resolution=224):
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])(pil_image)
 
+def check_sample_integrity(sample_path):
+    required_files = ['0.png', '1.png', '2.png', '3.png']
+    missing_files = []
+    for file in required_files:
+        if not os.path.exists(os.path.join(sample_path, file)):
+            missing_files.append(file)
+    return len(missing_files) == 0, missing_files
+
 class MDDataset(data.Dataset):
     """
     Read LR (Low Quality, here is LR) and GT image pairs.
@@ -39,8 +47,18 @@ class MDDataset(data.Dataset):
         self.distortion = {}
         for deg_type in opt["distortion"]:
             # 获取所有样本文件夹
-            sample_folders = sorted([f for f in os.listdir(os.path.join(opt["dataroot"], deg_type)) 
-                                   if os.path.isdir(os.path.join(opt["dataroot"], deg_type, f))])
+            sample_folders = []
+            all_folders = sorted([f for f in os.listdir(os.path.join(opt["dataroot"], deg_type)) 
+                                if os.path.isdir(os.path.join(opt["dataroot"], deg_type, f))])
+            
+            for folder in all_folders:
+                folder_path = os.path.join(opt["dataroot"], deg_type, folder)
+                is_complete, missing = check_sample_integrity(folder_path)
+                if is_complete:
+                    sample_folders.append(folder)
+                else:
+                    print(f"警告：样本 {folder_path} 不完整，缺少文件：{missing}")
+                
             self.distortion[deg_type] = sample_folders
         self.data_lens = [len(self.distortion[deg_type]) for deg_type in self.deg_types]
 
