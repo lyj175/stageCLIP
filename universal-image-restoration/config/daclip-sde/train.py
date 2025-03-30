@@ -255,17 +255,23 @@ def main():
                 break
 
             LQ, GT, deg_type = train_data["LQ"], train_data["GT"], train_data["type"]
+            # LQ = LQ[0]
             deg_token = tokenizer(deg_type).to(device)
             img4clip = train_data["LQ_clip"].to(device)
             with torch.no_grad(), torch.cuda.amp.autocast():
                 image_context, degra_context = clip_model.encode_image(img4clip, control=True)
-                image_context = image_context.float()
+                image_context = image_context.float()#TODO clip关键引导内容
                 degra_context = degra_context.float()
 
-            #TODO states:向GT靠近的LQ向量，带有噪声
+            # TODO sequence of guidance
+            weights = torch.rand(3)
+            weights = weights / weights.sum()
+            LQ = sum(w * t for w, t in zip(weights, LQ))
+
             timesteps, states = sde.generate_random_states(x0=GT, mu=LQ)
+
+
             model.feed_data(states, LQ, GT, text_context=degra_context, image_context=image_context) # xt, mu, x0
-            #TODO 反向采样
             model.optimize_parameters(current_step, timesteps, sde)
             model.update_learning_rate(
                 current_step, warmup_iter=opt["train"]["warmup_iter"]

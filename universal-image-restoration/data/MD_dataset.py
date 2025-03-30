@@ -24,7 +24,6 @@ def clip_transform(np_image, resolution=224):
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])(pil_image)
 
-#TODO dataset instance
 class MDDataset(data.Dataset):
     """
     Read LR (Low Quality, here is LR) and GT image pairs.
@@ -39,26 +38,15 @@ class MDDataset(data.Dataset):
 
         self.distortion = {}
         for deg_type in opt["distortion"]:
-            GT_paths = util.get_image_paths(
-                opt["data_type"], os.path.join(opt["dataroot"], deg_type, 'GT')
-            )  # GT list
-            LR_paths = util.get_image_paths(
-                opt["data_type"], os.path.join(opt["dataroot"], deg_type, 'LQ')
-            )  # LR list
-            self.distortion[deg_type] = (GT_paths, LR_paths)
-        self.data_lens = [len(self.distortion[deg_type][0]) for deg_type in self.deg_types]
+            # 获取所有样本文件夹
+            sample_folders = sorted([f for f in os.listdir(os.path.join(opt["dataroot"], deg_type)) 
+                                   if os.path.isdir(os.path.join(opt["dataroot"], deg_type, f))])
+            self.distortion[deg_type] = sample_folders
+        self.data_lens = [len(self.distortion[deg_type]) for deg_type in self.deg_types]
 
         self.random_scale_list = [1]
 
     def __getitem__(self, index):
-
-        # choose degradation type and data index
-        # type_id, deg_type = 0, self.deg_types[0]
-        #  while index >= len(self.distortion[deg_type][0]):
-        #     type_id += 1
-        #     index -= len(self.distortion[deg_type][0])
-        #     deg_type = self.deg_types[type_id]
-
         type_id = int(index % len(self.deg_types))
         if self.opt["phase"] == "train":
             deg_type = self.deg_types[type_id]
@@ -70,17 +58,20 @@ class MDDataset(data.Dataset):
             deg_type = self.deg_types[type_id]
             index = index // len(self.deg_types)
 
-        # get GT image
-        GT_path = self.distortion[deg_type][0][index]
-        img_GT = util.read_img(
-            None, GT_path, None
-        )  # return: Numpy float32, HWC, BGR, [0,1]
+        # 获取样本文件夹路径
+        sample_folder = self.distortion[deg_type][index]
+        sample_path = os.path.join(self.opt["dataroot"], deg_type, sample_folder)
 
-        # get LQ image
-        LQ_path = self.distortion[deg_type][1][index]
-        img_LQ = util.read_img(
-            None, LQ_path, None
-        )  # return: Numpy float32, HWC, BGR, [0,1]
+        # 读取GT图片
+        GT_path = os.path.join(sample_path, "0.png")
+        img_GT = util.read_img(None, GT_path, None)  # return: Numpy float32, HWC, BGR, [0,1]
+
+        # 读取所有LQ图片
+        img_LQ_list = []
+        for i in range(1, 4):  # 读取1.png, 2.png, 3.png
+            LQ_path = os.path.join(sample_path, f"{i}.png")
+            img_LQ = util.read_img(None, LQ_path, None)
+            img_LQ_list.append(img_LQ)
 
         if self.opt["phase"] == "train":
             H, W, C = img_GT.shape
@@ -88,33 +79,54 @@ class MDDataset(data.Dataset):
             rnd_h = random.randint(0, max(0, H - self.size))
             rnd_w = random.randint(0, max(0, W - self.size))
             img_GT = img_GT[rnd_h : rnd_h + self.size, rnd_w : rnd_w + self.size, :]
-            img_LQ = img_LQ[rnd_h : rnd_h + self.size, rnd_w : rnd_w + self.size, :]
+            
+            # 对所有LQ图片进行相同的裁剪
+            img_LQ_list = [img[rnd_h : rnd_h + self.size, rnd_w : rnd_w + self.size, :] 
+                          for img in img_LQ_list]
 
             # augmentation - flip, rotate
-            img_LQ, img_GT = util.augment(
-                [img_LQ, img_GT],
+            # img_LQ_list, img_GT = util.augment(
+            #     img_LQ_list + [img_GT],
+            #     self.opt["use_flip"],
+            #     self.opt["use_rot"],
+            #     mode=self.opt["mode"],
+            # )
+            img_LQ_list = util.augment(
+                img_LQ_list + [img_GT],
                 self.opt["use_flip"],
                 self.opt["use_rot"],
                 mode=self.opt["mode"],
             )
+            img_GT = img_LQ_list.pop()  # 最后一个元素是GT
 
         # change color space if necessary
         if self.opt["color"]:
             img_GT = util.channel_convert(img_GT.shape[2], self.opt["color"], [img_GT])[0]
-            img_LQ = util.channel_convert(img_LQ.shape[2], self.opt["color"], [img_LQ])[0]
+            img_LQ_list = [util.channel_convert(img.shape[2], self.opt["color"], [img])[0] 
+                          for img in img_LQ_list]
 
         # BGR to RGB, HWC to CHW, numpy to tensor
         if img_GT.shape[2] == 3:
             img_GT = img_GT[:, :, [2, 1, 0]]
-            img_LQ = img_LQ[:, :, [2, 1, 0]]
+            img_LQ_list = [img[:, :, [2, 1, 0]] for img in img_LQ_list]
 
-        # gt4clip = clip_transform(img_GT)
-        lq4clip = clip_transform(img_LQ)
+        #TODO 随机选择一张LQ图片用于CLIP
+        # lq4clip = []
+        # for img in img_LQ_list:
+        #     lq4clip.append(clip_transform(img))
+        lq4clip = clip_transform(random.choice(img_LQ_list))
 
         img_GT = torch.from_numpy(np.ascontiguousarray(np.transpose(img_GT, (2, 0, 1)))).float()
-        img_LQ = torch.from_numpy(np.ascontiguousarray(np.transpose(img_LQ, (2, 0, 1)))).float()
+        img_LQ_list = [torch.from_numpy(np.ascontiguousarray(np.transpose(img, (2, 0, 1)))).float() 
+                      for img in img_LQ_list]
 
-        return {"GT": img_GT, "LQ": img_LQ, "LQ_clip": lq4clip,  "type": deg_type, "GT_path": GT_path}
+        return {
+            "GT": img_GT, 
+            "LQ": img_LQ_list,  # 现在返回LQ图片列表
+            "LQ_clip": lq4clip,
+            "type": deg_type, 
+            "GT_path": GT_path
+        }
 
     def __len__(self):
         return np.sum(self.data_lens)
