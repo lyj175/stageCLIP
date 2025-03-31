@@ -27,6 +27,7 @@ try:
 except ImportError:
     hvd = None
 
+sys.path.insert(0, "/home/lee/PycharmProjects/stageCLIP/da-clip/src")
 from open_clip import create_model_and_transforms, trace_model, get_tokenizer, create_loss
 from training.data import get_data
 from training.distributed import is_master, init_distributed_device, broadcast_object
@@ -487,4 +488,36 @@ def copy_codebase(args):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    # 定义训练参数字典
+    training_args = {
+        "save-frequency": 1,
+        "zeroshot-frequency": 1,
+        "report-to": "tensorboard",
+        "train-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_train.csv",
+        "val-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_val.csv",
+        "csv-img-key": "filepath",
+        "csv-caption-key": "title",
+        "warmup": 100,
+        # "batch-size": 512,
+        "batch-size": 256,
+        "lr": 2e-5,
+        "wd": 0.05,
+        "epochs": 30,
+        "workers": 8,
+        "model": "daclip_ViT-B-32",
+        "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_13",
+        "pretrained": "laion2b_s34b_b79k",
+        "da": True
+    }
+    
+    # 将字典转换为命令行参数格式
+    cmd_args = []
+    for k, v in training_args.items():
+        if isinstance(v, bool) and v:
+            cmd_args.append(f"--{k}")
+        else:
+            cmd_args.append(f"--{k}")
+            cmd_args.append(str(v))
+    
+    main(cmd_args)
+    # main(sys.argv[1:])  # 注释掉原来的命令行参数方式

@@ -56,7 +56,10 @@ class CsvDataset(Dataset):
         texts = str(self.captions[idx])
 
         if self.da:
-            caption, degradation = texts.split(': ')
+            # caption, degradation = texts.split(': ')
+            #TODO 临时写死去雾
+            caption = texts
+            degradation = 'hazy'
             caption = self.tokenize([caption])[0]
             degradation = self.tokenize([degradation])[0]
             texts = torch.cat([caption, degradation], dim=0)

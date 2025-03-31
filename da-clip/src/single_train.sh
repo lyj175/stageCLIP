@@ -13,6 +13,6 @@ python -m training.main \
     --epochs=30 \
     --workers=8 \
     --model daclip_ViT-B-32 \
-    --name "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5" \
+    --name "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_7" \
     --pretrained "laion2b_s34b_b79k" \
     --da
