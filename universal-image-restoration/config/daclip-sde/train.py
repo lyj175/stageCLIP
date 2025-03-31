@@ -158,7 +158,7 @@ def main():
 
 
     #### create train and val dataloader
-    dataset_ratio = 200  # enlarge the size of each epoch
+    dataset_ratio = 1  # enlarge the size of each epoch
     for phase, dataset_opt in opt["datasets"].items():
         if phase == "train":
             train_set = create_dataset(dataset_opt)
@@ -245,11 +245,15 @@ def main():
     
     os.makedirs('image', exist_ok=True)
 
+    import time
+    start_time = time.time()
     for epoch in range(start_epoch, total_epochs + 1):
         if opt["dist"]:
             train_sampler.set_epoch(epoch)
         for _, train_data in enumerate(train_loader):
             current_step += 1
+            # print(current_step,epoch)
+
 
             if current_step > total_iters:
                 break
@@ -281,6 +285,17 @@ def main():
                 logs = model.get_current_log()
                 message = "<epoch:{:3d}, iter:{:8,d}, lr:{:.3e}> ".format(
                     epoch, current_step, model.get_current_learning_rate()
+                )
+                print(current_step,epoch)
+                elapsed_time = time.time() - start_time  # 添加这一行
+                hours = int(elapsed_time // 3600)  # 添加这一行
+                minutes = int((elapsed_time % 3600) // 60)  # 添加这一行
+                seconds = int(elapsed_time % 60)  # 添加这一行
+
+                logs = model.get_current_log()
+                message = "<epoch:{:3d}, iter:{:8,d}, lr:{:.3e}, time:{:02d}:{:02d}:{:02d}> ".format(
+                    epoch, current_step, model.get_current_learning_rate(),
+                    hours, minutes, seconds  # 修改这一行
                 )
                 for k, v in logs.items():
                     message += "{:s}: {:.4e} ".format(k, v)
@@ -355,7 +370,7 @@ def main():
                 sys.exit(0)
             #### save models and training states
             if current_step % opt["logger"]["save_checkpoint_freq"] == 0:
-            # if 0 == 0:
+            # if current_step % opt["logger"]["save_checkpoint_freq"] == 0:
                 if rank <= 0:
                     logger.info("Saving models and training states.")
                     model.save(current_step)
