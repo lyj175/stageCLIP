@@ -265,7 +265,7 @@ def main():
             with torch.no_grad(), torch.cuda.amp.autocast():
                 image_context, degra_context = clip_model.encode_image(img4clip, control=True)
                 image_context = image_context.float()#TODO clip关键引导内容
-                degra_context = degra_context.float()
+                degra_context = degra_context.float()#TODO ImageController关键引导内容
 
             # TODO sequence of guidance
             weights = torch.rand(3)

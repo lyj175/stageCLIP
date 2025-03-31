@@ -126,18 +126,18 @@ class ConditionalUNet(nn.Module):
         x = torch.cat([x, cond], dim=1)
 
         H, W = x.shape[2:]
+        #TODO 映射为符合图像尺寸的形状
         x = self.check_image_size(x, H, W)
 
         x = self.init_conv(x)
         x_ = x.clone()
 
-        #TODO 映射为符合图像尺寸的形状
-        t = self.time_mlp(time) 
+        t = self.time_mlp(time)
         if self.context_dim > 0:
             if self.use_degra_context and text_context is not None:
                 prompt_embedding = torch.softmax(self.text_mlp(text_context), dim=1) * self.prompt
                 prompt_embedding = self.prompt_mlp(prompt_embedding)
-                t = t + prompt_embedding
+                t = t + prompt_embedding#TODO imgController编码的最终去处
 
             if self.use_image_context and image_context is not None:
                 image_context = image_context.unsqueeze(1)

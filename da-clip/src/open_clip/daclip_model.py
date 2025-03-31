@@ -67,11 +67,12 @@ class DaCLIP(nn.Module):
         text_features = self.encode_text(caption, normalize=True) if text is not None else None
         text_degra_features = self.encode_text(degradation, normalize=True) if degradation is not None else None
 
+        #TODO clip冻结visual/controller调参Visual/
         return {
-            "image_features": image_features,
-            "text_features": text_features,
-            "image_degra_features": image_degra_features,
-            "text_degra_features": text_degra_features,
+            "image_features": image_features,#clip冻结visual
+            "text_features": text_features,#caption text
+            "image_degra_features": image_degra_features,#controller调参Visual
+            "text_degra_features": text_degra_features,#ded type text
             "logit_scale": self.logit_scale.exp()
         }
 
