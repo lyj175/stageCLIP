@@ -30,7 +30,7 @@ device = model.device
 # opt['path']['daclip'] = '/home/ligong3/l/daclip-uir/da-clip/src/logs/daclip_ViT-B-32_b784x1_lr2e-5_e50_17/checkpoints/epoch_30.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/daclip_ViT-B-32.pt'
-opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/logs/2025_04_01-15_20_57-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_30.pt'
+opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/2025_04_01-17_02_02-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_1.pt'
 clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
 clip_model = clip_model.to(device)
 
