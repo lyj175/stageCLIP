@@ -500,14 +500,14 @@ if __name__ == "__main__":
         "csv-caption-key": "title",
         "warmup": 100,
         # "batch-size": 512,
-        "batch-size": 256,
+        "batch-size": 16,
         "lr": 2e-5,
         "wd": 0.05,
         "epochs": 30,
         "workers": 8,
         "model": "daclip_ViT-B-32",
-        "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_47",
-        "pretrained": "laion2b_s34b_b79k",
+        # "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_47",
+        # "pretrained": "laion2b_s34b_b79k",
         "da": True
     }
     training_args_multi = {
@@ -526,7 +526,7 @@ if __name__ == "__main__":
         "epochs": 100,
         "workers": 8,
         "model": "daclip_ViT-B-32",
-        "name": "daclip_ViT-B-32-2023-09_b768x4_lr3e-5_e100_zeroadd_17",
+        "name": "daclip_ViT-B-32-2023-09_b768x4_lr3e-5_e100_zeroadd_19",
         "pretrained": "laion2b_s34b_b79k",
         "da": True
     }
@@ -534,12 +534,14 @@ if __name__ == "__main__":
 
     # 将字典转换为命令行参数格式
     cmd_args = []
-    for k, v in training_args_multi.items():
+    # for k, v in training_args_multi.items():
+    for k, v in training_args.items():
         if isinstance(v, bool) and v:
             cmd_args.append(f"--{k}")
         else:
             cmd_args.append(f"--{k}")
             cmd_args.append(str(v))
     
-    main(cmd_args)
-    # main(sys.argv[1:])  # 注释掉原来的命令行参数方式
+    # main(cmd_args)
+    main(sys.argv[1:])  # 注释掉原来的命令行参数方式
+#

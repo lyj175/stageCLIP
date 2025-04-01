@@ -167,6 +167,7 @@ class ClipLoss(nn.Module):
 
         # 计算平均损失（除以视图总数7=4文本+3图像）
         total_loss = total_loss / (text_features.shape[1] + deg_img.shape[1])
+        total_loss = total_loss.contiguous()
 
         if output_dict:
             return {"contrastive_loss": total_loss}
@@ -252,7 +253,7 @@ class DaClipLoss(ClipLoss):
         #     return {"contrastive_loss": clip_loss, "degra_loss": degra_loss}
         #
         # return clip_loss, degra_loss
-        return {"contrastive_loss": clip_loss}
+        return {"contrastive_loss": clip_loss.contiguous()}
 
 
 class DistillClipLoss(ClipLoss):
