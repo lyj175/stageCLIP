@@ -44,13 +44,38 @@ class DaCLIP(nn.Module):
         self.visual_control.set_grad_checkpointing(enable)
 
     def encode_image(self, image, control=False, normalize: bool = False):
+        # if control:
+        #     degra_features, hiddens = self.visual_control(image, output_hiddens=True)
+        #     image_features = self.clip.visual(image, control=hiddens)
+        #
+        #     image_features = F.normalize(image_features, dim=-1) if normalize else image_features
+        #     degra_features = F.normalize(degra_features, dim=-1) if normalize else degra_features
+        #     return image_features, degra_features
+        # else:
+        #     return self.clip.encode_image(image, normalize)
+
+        if image is None:
+            return None, None
+
         if control:
-            degra_features, hiddens = self.visual_control(image, output_hiddens=True)
-            image_features = self.clip.visual(image, control=hiddens)
-            
-            image_features = F.normalize(image_features, dim=-1) if normalize else image_features
-            degra_features = F.normalize(degra_features, dim=-1) if normalize else degra_features
-            return image_features, degra_features
+            # degra_features, hiddens = self.visual_control(image, output_hiddens=True)
+            # image_features = self.clip.visual(image, control=hiddens)
+            #
+            # image_features = F.normalize(image_features, dim=-1) if normalize else image_features
+            # degra_features = F.normalize(degra_features, dim=-1) if normalize else degra_features
+            # return image_features, degra_features
+
+            image_features_samples = []
+            degra_features_samples = []
+            for i in range(image.shape[0]):
+                degra_features, hiddens = self.visual_control(image[i], output_hiddens=True)
+                image_features = self.clip.visual(image[i], control=hiddens)
+
+                image_features = F.normalize(image_features, dim=-1) if normalize else image_features
+                degra_features = F.normalize(degra_features, dim=-1) if normalize else degra_features
+                image_features_samples.append(image_features)
+                degra_features_samples.append(degra_features)
+            return torch.stack(image_features_samples,dim=0), torch.stack(degra_features_samples,dim=0)
         else:
             return self.clip.encode_image(image, normalize)
 
@@ -65,14 +90,20 @@ class DaCLIP(nn.Module):
         (caption, degradation) = text.chunk(2, dim=-1) if text is not None else (None, None)
         image_features, image_degra_features = self.encode_image(image, control=True, normalize=True) if image is not None else None
         text_features = self.encode_text(caption, normalize=True) if text is not None else None
-        text_degra_features = self.encode_text(degradation, normalize=True) if degradation is not None else None
+        # text_degra_features = self.encode_text(degradation, normalize=True) if degradation is not None else None
 
         #TODO clip冻结visual/controller调参Visual/
+        # return {
+        #     "image_features": image_features,#clip冻结visual
+        #     "text_features": text_features,#caption text
+        #     "image_degra_features": image_degra_features,#controller调参Visual
+        #     "text_degra_features": text_degra_features,#ded type text
+        #     "logit_scale": self.logit_scale.exp()
+        # }
         return {
-            "image_features": image_features,#clip冻结visual
-            "text_features": text_features,#caption text
-            "image_degra_features": image_degra_features,#controller调参Visual
-            "text_degra_features": text_degra_features,#ded type text
+            "image_features": image_features,  # clip冻结visual controlled
+            "text_features": text_features,  # caption text
+            "image_degra_features": image_degra_features,  # controller调参Visual
             "logit_scale": self.logit_scale.exp()
         }
 

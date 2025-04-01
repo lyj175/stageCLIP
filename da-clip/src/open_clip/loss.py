@@ -117,18 +117,60 @@ class ClipLoss(nn.Module):
         
         return logits_per_image, logits_per_text
 
-    def forward(self, image_features, text_features, logit_scale, output_dict=False):
+    def forward(self, image_features, text_features, deg_img, logit_scale, output_dict=False):
+        # device = image_features.device
+
+        # logits_per_image, logits_per_text = self.get_logits(image_features, text_features, logit_scale)
+        #
+        # labels = self.get_ground_truth(device, logits_per_image.shape[0])
+        #
+        # total_loss = (
+        #     F.cross_entropy(logits_per_image, labels) +
+        #     F.cross_entropy(logits_per_text, labels)
+        # ) / 2
+
+        # logits_per_image, logits_per_text = self.get_logits(image_features, text_features, logit_scale)
+        #
+        # labels = self.get_ground_truth(device, logits_per_image.shape[0])
+        #
+        # total_loss = (
+        #                      F.cross_entropy(logits_per_image, labels) +
+        #                      F.cross_entropy(logits_per_text, labels)
+        #              ) / 2
+        #
+        # return {"contrastive_loss": total_loss} if output_dict else total_loss
+
         device = image_features.device
-        logits_per_image, logits_per_text = self.get_logits(image_features, text_features, logit_scale)
+        total_loss = 0.0
 
-        labels = self.get_ground_truth(device, logits_per_image.shape[0])
+        # 计算基础图像-文本损失（text_features的4个视图）
+        for i in range(text_features.shape[1]):  # 遍历4个文本视图
+            current_text = text_features[:, i, :]  # 取出第i个文本视图 [16,512]
 
-        total_loss = (
-            F.cross_entropy(logits_per_image, labels) +
-            F.cross_entropy(logits_per_text, labels)
-        ) / 2
+            logits_img, logits_text = self.get_logits(image_features, current_text, logit_scale)
+            labels = self.get_ground_truth(device, logits_img.shape[0])
 
-        return {"contrastive_loss": total_loss} if output_dict else total_loss
+            # 累加图像-文本损失
+            total_loss += (F.cross_entropy(logits_img, labels) +
+                           F.cross_entropy(logits_text, labels)) / 2
+
+        # 计算退化图像损失（deg_img的3个视图）
+        for j in range(deg_img.shape[1]):  # 遍历3个退化图像视图
+            current_deg = deg_img[:, j, :]  # 取出第j个退化视图 [16,512]
+
+            logits_img, logits_deg = self.get_logits(image_features, current_deg, logit_scale)
+            labels = self.get_ground_truth(device, logits_img.shape[0])
+
+            # 累加图像-退化图像损失
+            total_loss += (F.cross_entropy(logits_img, labels) +
+                           F.cross_entropy(logits_deg, labels)) / 2
+
+        # 计算平均损失（除以视图总数7=4文本+3图像）
+        total_loss = total_loss / (text_features.shape[1] + deg_img.shape[1])
+
+        if output_dict:
+            return {"contrastive_loss": total_loss}
+        return total_loss
 
 
 class CoCaLoss(ClipLoss):
@@ -178,22 +220,39 @@ class CoCaLoss(ClipLoss):
 
 class DaClipLoss(ClipLoss):
 
+    # def forward(
+    #         self,
+    #         image_features,
+    #         text_features,
+    #         image_degra_features,
+    #         text_degra_features,
+    #         logit_scale,
+    #         output_dict=False
+    # ):
+    #     clip_loss = super().forward(image_features, text_features, logit_scale)
+    #     degra_loss = super().forward(image_degra_features, text_degra_features, logit_scale)
+    #
+    #     if output_dict:
+    #         return {"contrastive_loss": clip_loss, "degra_loss": degra_loss}
+    #
+    #     return clip_loss, degra_loss
+
     def forward(
-            self, 
-            image_features, 
-            text_features, 
-            image_degra_features, 
-            text_degra_features, 
-            logit_scale, 
-            output_dict=False
+            self,
+            flag,
+            deg_images,
+            deg_texts,
+            logit_scale,
+            output_dict = False
     ):
-        clip_loss = super().forward(image_features, text_features, logit_scale)
-        degra_loss = super().forward(image_degra_features, text_degra_features, logit_scale)
+        clip_loss = super().forward(image_features=flag, deg_img=deg_images,text_features=deg_texts, logit_scale=logit_scale)
+        # degra_loss = super().forward(image_degra_features, text_degra_features, logit_scale)
 
-        if output_dict:
-            return {"contrastive_loss": clip_loss, "degra_loss": degra_loss}
-
-        return clip_loss, degra_loss
+        # if output_dict:
+        #     return {"contrastive_loss": clip_loss, "degra_loss": degra_loss}
+        #
+        # return clip_loss, degra_loss
+        return {"contrastive_loss": clip_loss}
 
 
 class DistillClipLoss(ClipLoss):

@@ -419,8 +419,9 @@ def main(args):
         train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist_model, args, tb_writer=writer)
         completed_epoch = epoch + 1
 
-        if any(v in data for v in ('val', 'imagenet-val', 'imagenet-v2')):
-            evaluate(model, data, completed_epoch, args, writer)
+        #TODO 暂时去掉评估
+        # if any(v in data for v in ('val', 'imagenet-val', 'imagenet-v2')):
+        #     evaluate(model, data, completed_epoch, args, writer)
 
         # Saving checkpoints.
         if args.save_logs:
@@ -505,14 +506,35 @@ if __name__ == "__main__":
         "epochs": 30,
         "workers": 8,
         "model": "daclip_ViT-B-32",
-        "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_13",
+        "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_47",
         "pretrained": "laion2b_s34b_b79k",
         "da": True
     }
-    
+    training_args_multi = {
+        "save-frequency": 1,
+        "zeroshot-frequency": 1,
+        "report-to": "tensorboard",
+        "train-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_train.csv",
+        "val-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_val.csv",
+        "csv-img-key": "filepath",
+        "csv-caption-key": "title",
+        "warmup": 100,
+        # "batch-size": 784,
+        "batch-size": 16,
+        "lr": 3e-5,
+        "wd": 0.05,
+        "epochs": 100,
+        "workers": 8,
+        "model": "daclip_ViT-B-32",
+        "name": "daclip_ViT-B-32-2023-09_b768x4_lr3e-5_e100_zeroadd_17",
+        "pretrained": "laion2b_s34b_b79k",
+        "da": True
+    }
+
+
     # 将字典转换为命令行参数格式
     cmd_args = []
-    for k, v in training_args.items():
+    for k, v in training_args_multi.items():
         if isinstance(v, bool) and v:
             cmd_args.append(f"--{k}")
         else:

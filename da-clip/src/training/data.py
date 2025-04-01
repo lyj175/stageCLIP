@@ -34,44 +34,97 @@ def random_crop(pil_image, low_size=64):
 
 class CsvDataset(Dataset):
     def __init__(self, input_filename, transforms, img_key, caption_key, sep="\t", tokenizer=None, da=False, crop=False):
+        # logging.debug(f'Loading csv data from {input_filename}.')
+        # # df = pd.read_csv(input_filename, sep=sep)
+        # df = pd.read_csv(input_filename)
+        #
+        # self.images = df[img_key].tolist()
+        # print('********images*********',self.images)
+        # self.captions = df[caption_key].tolist()
+        # self.transforms = transforms
+        # logging.debug('Done loading data.')
+        #
+        # self.tokenize = tokenizer
+        # self.da = da
+        # self.crop = crop
         logging.debug(f'Loading csv data from {input_filename}.')
-        # df = pd.read_csv(input_filename, sep=sep)
         df = pd.read_csv(input_filename)
 
-        self.images = df[img_key].tolist()
-        print('********images*********',self.images)
-        self.captions = df[caption_key].tolist()
-        self.transforms = transforms
-        logging.debug('Done loading data.')
+        # 获取文件夹路径和描述
+        self.folder_paths = df['folder_path'].tolist()
+        self.descriptions = [
+            df['desc_0'].tolist(),
+            df['desc_1'].tolist(),
+            df['desc_2'].tolist(),
+            df['desc_3'].tolist()
+        ]
 
+        self.transforms = transforms
         self.tokenize = tokenizer
         self.da = da
         self.crop = crop
+        logging.debug('Done loading data.')
 
     def __len__(self):
-        return len(self.captions)
+        # return len(self.captions)
+        return len(self.folder_paths)
 
     def __getitem__(self, idx):
-        images = Image.open(str(self.images[idx]))
-        texts = str(self.captions[idx])
+        # images = Image.open(str(self.images[idx]))
+        # texts = str(self.captions[idx])
+        #
+        # if self.da:
+        #     # caption, degradation = texts.split(': ')
+        #     #TODO 临时写死去雾
+        #     caption = texts
+        #     degradation = 'hazy'
+        #     caption = self.tokenize([caption])[0]
+        #     degradation = self.tokenize([degradation])[0]
+        #     texts = torch.cat([caption, degradation], dim=0)
+        #     # texts = torch.cat([caption, caption], dim=0)
+        #
+        #     if self.crop and random.random() > 0.2:
+        #         images = random_crop(images)
+        # else:
+        #     texts = self.tokenize([texts])[0]
+        #
+        # images = self.transforms(images)
+        #
+        # return images, texts
+        folder_path = self.folder_paths[idx]
+        images = []
+        texts = []
 
-        if self.da:
-            # caption, degradation = texts.split(': ')
-            #TODO 临时写死去雾
-            caption = texts
-            degradation = 'hazy'
-            caption = self.tokenize([caption])[0]
-            degradation = self.tokenize([degradation])[0]
-            texts = torch.cat([caption, degradation], dim=0)
-            # texts = torch.cat([caption, caption], dim=0)
+        # 加载4张图片
+        for i in range(4):
+            img_path = os.path.join(folder_path, f"{i}.png")
+            image = Image.open(img_path).convert('RGB')
 
-            if self.crop and random.random() > 0.2:
-                images = random_crop(images)
-        else:
-            texts = self.tokenize([texts])[0]
+            if self.da and self.crop and random.random() > 0.2:
+                image = random_crop(image)
 
-        images = self.transforms(images)
-        
+            # 应用图像转换
+            image = self.transforms(image)
+            images.append(image)
+
+            # 处理对应的描述文本
+            text = str(self.descriptions[i][idx])
+            if self.da:
+                # 临时写死去雾
+                caption = text
+                degradation = 'hazy'
+                caption = self.tokenize([caption])[0]
+                degradation = self.tokenize([degradation])[0]
+                text = torch.cat([caption, degradation], dim=0)
+            else:
+                text = self.tokenize([text])[0]
+            texts.append(text)
+
+        # 将图片堆叠成[4,3,224,224]的形状
+        images = torch.stack(images)
+        # 将文本堆叠成[4,seq_len]的形状
+        texts = torch.stack(texts)
+
         return images, texts
 
 
@@ -494,7 +547,8 @@ def get_csv_dataset(args, preprocess_fn, is_train, epoch=0, tokenizer=None):
         num_workers=args.workers,
         pin_memory=True,
         sampler=sampler,
-        drop_last=is_train,
+        # drop_last=is_train,
+        drop_last=False,
     )
     dataloader.num_samples = num_samples
     dataloader.num_batches = len(dataloader)

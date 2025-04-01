@@ -298,7 +298,8 @@ def create_loss(args):
             rank=args.rank,
             world_size=args.world_size,
             use_horovod=args.horovod,
-        ) 
+        )
+    #TODO 对比损失
     return ClipLoss(
         local_loss=args.local_loss,
         gather_with_grad=args.gather_with_grad,

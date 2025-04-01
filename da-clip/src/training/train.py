@@ -101,13 +101,21 @@ def train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist
                 #TODO ！！！DaCLIP
                 model_out = model(images, texts)
                 logit_scale = model_out["logit_scale"]
+
+                flag = model_out['image_features'][:,0,:]
+                deg_images = model_out['image_degra_features'][:, 1:4, :]
+                deg_texts = model_out['text_features']
+                logit_scale = model_out['logit_scale']
+
                 if args.distill:
                     with torch.no_grad():
                         dist_model_out = dist_model(images, texts)
                     model_out.update({f'dist_{k}' : v for k, v in dist_model_out.items()})
-                losses = loss(**model_out, output_dict=True)
+                # losses = loss(**model_out, output_dict=True)
+                losses = loss(flag,deg_images,deg_texts,logit_scale=logit_scale, output_dict=True)
 
                 total_loss = sum(losses.values())
+                # total_loss = losses
                 losses["loss"] = total_loss
 
             backward(total_loss, scaler)
