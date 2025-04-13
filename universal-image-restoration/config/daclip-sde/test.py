@@ -22,11 +22,11 @@ from data.util import bgr2ycbcr
 
 #### options
 parser = argparse.ArgumentParser()
-parser.add_argument("-opt", type=str, required=True, help="Path to options YMAL file.")
-opt = option.parse(parser.parse_args().opt, is_train=False)
+# parser.add_argument("-opt", type=str, required=True, help="Path to options YMAL file.")
+# opt = option.parse(parser.parse_args().opt, is_train=False)
+opt = option.parse("options/test.yml", is_train=False)
 
 opt = option.dict_to_nonedict(opt)
-
 #### mkdir and logger
 util.mkdirs(
     (

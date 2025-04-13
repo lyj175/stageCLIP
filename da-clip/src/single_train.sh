@@ -1,5 +1,5 @@
 python -m training.main \
-    --save-frequency 1 \
+    --save-frequency 5 \
     --zeroshot-frequency 1 \
     --report-to tensorboard \
     --train-data="/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_train.csv"  \
@@ -8,11 +8,12 @@ python -m training.main \
     --csv-caption-key title \
     --warmup 100 \
     --batch-size=16 \
-    --name "stageCLIP_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_10" \
+    --name "stageCLIP_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_13" \
+    --pretrained "laion2b_s34b_b79k"\
     --lr=2e-5 \
     --wd=0.05 \
     --model daclip_ViT-B-32 \
-    --epochs=30 \
+    --epochs=200 \
     --workers=8 \
     --da
 

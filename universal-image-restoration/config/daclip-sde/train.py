@@ -187,6 +187,13 @@ def main():
                     )
                 )
         elif phase == "val":
+            # dataset_opt['mode'] = 'LQGT'#TODO 暂时写死
+            # dataset_opt["dataroot_LQ"] =  dataset_opt['dataroot']+'/noisy/'+'LQ'
+
+            # dataset_opt["dataroot_GT"] =  "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT"
+            # dataset_opt["dataroot_LQ"] =  "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/LQ"
+            # dataset_opt['phase'] = 'test1'
+            # dataset_opt['distortion'] = ['noisy']
             val_set = create_dataset(dataset_opt)
             val_loader = create_dataloader(val_set, dataset_opt, opt, None)
             if rank <= 0:
@@ -206,7 +213,11 @@ def main():
 
     # clip_model, _preprocess = clip.load("ViT-B/32", device=device)
     if opt['path']['daclip'] is not None:
-        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/logs/2025_04_11-20_44_33-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_20.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/411_epoch_20.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/logs/2025_04_12-19_00_05-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_20.pt'
+        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
         clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32',pretrained=opt['path']['daclip'])
         # clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
     else:
@@ -246,6 +257,7 @@ def main():
     os.makedirs('image', exist_ok=True)
 
     import time
+    current_metric = 0
     start_time = time.time()
     for epoch in range(start_epoch, total_epochs + 1):
         if opt["dist"]:
@@ -307,74 +319,85 @@ def main():
                     logger.info(message)
 
             # validation, to produce ker_map_list(fake)
-            # if current_step % opt["train"]["val_freq"] == 0 and rank <= 0:
-            # # if True:
-            #     torch.cuda.empty_cache()
-            #     avg_psnr = 0.0
-            #     idx = 0
-            #     for _, val_data in enumerate(val_loader):
-            #
-            #         LQ, GT, deg_type = val_data["LQ"], val_data["GT"], val_data["type"]
-            #         LQ=LQ[0]
-            #         deg_token = tokenizer(deg_type).to(device)
-            #         img4clip = val_data["LQ_clip"].to(device)
-            #         with torch.no_grad(), torch.cuda.amp.autocast():
-            #             image_context, degra_context = clip_model.encode_image(img4clip, control=True)
-            #             image_context = image_context.float()
-            #             degra_context = degra_context.float()
-            #
-            #         noisy_state = sde.noise_state(LQ)
-            #
-            #         # valid Predictor
-            #         model.feed_data(noisy_state, LQ, GT, text_context=degra_context, image_context=image_context)
-            #         model.test(sde)
-            #         visuals = model.get_current_visuals()
-            #
-            #         output = util.tensor2img(visuals["Output"].squeeze())  # uint8
-            #         gt_img = util.tensor2img(GT.squeeze())  # uint8
-            #         lq_img = util.tensor2img(LQ.squeeze())
-            #
-            #         util.save_img(output, f'image/{idx}_{deg_type[0]}_SR.png')
-            #         util.save_img(gt_img, f'image/{idx}_{deg_type[0]}_GT.png')
-            #         util.save_img(lq_img, f'image/{idx}_{deg_type[0]}_LQ.png')
-            #
-            #         # calculate PSNR
-            #         avg_psnr += util.calculate_psnr(output, gt_img)
-            #         idx += 1
-            #
-            #         if idx > 99:
-            #             break
-            #
-            #     avg_psnr = avg_psnr / idx
-            #
-            #     if avg_psnr > best_psnr:
-            #         best_psnr = avg_psnr
-            #         best_iter = current_step
-            #
-            #     # log
-            #     logger.info("# Validation # PSNR: {:.6f}, Best PSNR: {:.6f}| Iter: {}".format(avg_psnr, best_psnr, best_iter))
-            #     logger_val = logging.getLogger("val")  # validation logger
-            #     logger_val.info(
-            #         "<epoch:{:3d}, iter:{:8,d}, psnr: {:.6f}".format(
-            #             epoch, current_step, avg_psnr
-            #         )
-            #     )
-            #     print("<epoch:{:3d}, iter:{:8,d}, psnr: {:.6f}".format(
-            #             epoch, current_step, avg_psnr
-            #         ))
-            #     # tensorboard logger
-            #     if opt["use_tb_logger"] and "debug" not in opt["name"]:
-            #         tb_logger.add_scalar("psnr", avg_psnr, current_step)
+            if current_step % opt["train"]["val_freq"] == 0 and rank <= 0:
+            # if True:
+                torch.cuda.empty_cache()
+                avg_psnr = 0.0
+                avg_ssim = 0.0
+                idx = 0
+                for _, val_data in enumerate(val_loader):
+
+                    # LQ, GT, deg_type = val_data["LQ"], val_data["GT"], val_data["type"]
+                    LQ, GT = val_data["LQ"], val_data["GT"]
+                    # LQ=LQ[0]
+                    # deg_token = tokenizer(deg_type).to(device)
+                    img4clip = val_data["LQ_clip"].to(device)
+                    with torch.no_grad(), torch.cuda.amp.autocast():
+                        image_context, degra_context = clip_model.encode_image(img4clip, control=True)
+                        image_context = image_context.float()
+                        degra_context = degra_context.float()
+
+                    noisy_state = sde.noise_state(LQ)
+
+                    # valid Predictor
+                    model.feed_data(noisy_state, LQ, GT, text_context=degra_context, image_context=image_context)
+                    model.test(sde)
+                    visuals = model.get_current_visuals()
+
+                    output = util.tensor2img(visuals["Output"].squeeze())  # uint8
+                    gt_img = util.tensor2img(GT.squeeze())  # uint8
+                    lq_img = util.tensor2img(LQ.squeeze())
+
+                    util.save_img(output, f'image/{idx}_{deg_type[0]}_SR.png')
+                    util.save_img(gt_img, f'image/{idx}_{deg_type[0]}_GT.png')
+                    util.save_img(lq_img, f'image/{idx}_{deg_type[0]}_LQ.png')
+
+                    # calculate PSNR
+                    current = util.calculate_psnr(output, gt_img)
+                    ssim = util.calculate_ssim(output,gt_img)
+                    # print(current_step,'*****************')
+                    avg_psnr += current
+                    avg_ssim += ssim
+                    idx += 1
+
+                    if idx > 99:
+                        break
+
+                avg_psnr = avg_psnr / idx
+
+                if avg_psnr > best_psnr:
+                    best_psnr = avg_psnr
+                    best_iter = current_step
+                    if rank <= 0:
+                        logger.info("Saving models and training states.")
+                        model.save(current_step)
+                        model.save_training_state(epoch, current_step)
+
+                # log
+                logger.info("# Validation # PSNR: {:.6f}, Best PSNR: {:.6f}| Iter: {}".format(avg_psnr, best_psnr, best_iter))
+                logger_val = logging.getLogger("val")  # validation logger
+                logger_val.info(
+                    "<epoch:{:3d}, iter:{:8,d}, psnr: {:.6f}, ssim: {:.6f}".format(
+                        epoch, current_step, avg_psnr,avg_ssim
+                    )
+                )
+                print("<epoch:{:3d}, iter:{:8,d}, psnr: {:.6f}".format(
+                        epoch, current_step, avg_psnr
+                    ))
+                # tensorboard logger
+                if opt["use_tb_logger"] and "debug" not in opt["name"]:
+                    tb_logger.add_scalar("psnr", avg_psnr, current_step)
 
             if error.value:
                 sys.exit(0)
             #### save models and training states
-            if current_step % opt["logger"]["save_checkpoint_freq"] == 0:
+            #TODO moving and saving on better metrix
             # if current_step % opt["logger"]["save_checkpoint_freq"] == 0:
-                if rank <= 0:
-                    logger.info("Saving models and training states.")
-                    model.save(current_step)
-                    model.save_training_state(epoch, current_step)
+            # # if current_step % opt["logger"]["save_checkpoint_freq"] == 0:
+            #     if rank <= 0:
+            #         logger.info("Saving models and training states.")
+            #         model.save(current_step)
+            #         model.save_training_state(epoch, current_step)
         #TODO 测试，记得删除
         # break
 

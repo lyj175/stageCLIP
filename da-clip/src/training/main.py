@@ -491,11 +491,14 @@ def copy_codebase(args):
 if __name__ == "__main__":
     # 定义训练参数字典
     training_args = {
-        "save-frequency": 1,
+        "save-frequency": 5,
         "zeroshot-frequency": 1,
         "report-to": "tensorboard",
-        "train-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_train.csv",
-        "val-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_val.csv",
+        # "train-data": "/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/datasets/universal/daclip_train.csv",
+        # "train-data": "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/image_descriptions_noise_1199.csv",
+        # "train-data": "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/image_descriptions_5144.csv",
+        "train-data": "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/image_descriptions_rainL.csv",
+        "val-data": "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/image_descriptions_noise_1199_val.csv",
         "csv-img-key": "filepath",
         "csv-caption-key": "title",
         "warmup": 100,
@@ -542,6 +545,6 @@ if __name__ == "__main__":
             cmd_args.append(f"--{k}")
             cmd_args.append(str(v))
     
-    # main(cmd_args)
-    main(sys.argv[1:])  # 注释掉原来的命令行参数方式
+    main(cmd_args)
+    # main(sys.argv[1:])  # 注释掉原来的命令行参数方式
 #

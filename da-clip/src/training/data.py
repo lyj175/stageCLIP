@@ -94,10 +94,13 @@ class CsvDataset(Dataset):
         folder_path = self.folder_paths[idx]
         images = []
         texts = []
-
+        #TODO 指定数据集父目录
+        # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/noisy/'
+        parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/rain/'
         # 加载4张图片
         for i in range(4):
-            img_path = os.path.join(folder_path, f"{i}.png")
+            # img_path = os.path.join(parent_path+folder_path+'/', f"{str(i)}.png")
+            img_path = f'{parent_path}{folder_path}/{str(i)}.png'
             image = Image.open(img_path).convert('RGB')
 
             if self.da and self.crop and random.random() > 0.2:

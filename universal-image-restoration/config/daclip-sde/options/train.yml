@@ -3,7 +3,10 @@ name: universal-ir
 use_tb_logger: true
 model: denoising
 #distortion: [motion-blurry,hazy_,jpeg-compressed,low-light,noisy,raindrop,rainy,shadowed,snowy,uncompleted]
-distortion: [hazy_stage]
+#distortion: [hazy_stage,rainy]
+#distortion: [rainy]
+#distortion: [noisy]
+distortion: [rain]
 gpu_ids: [0,1]
 
 sde:
@@ -38,9 +41,14 @@ datasets:
     color: RGB
   val:
     name: Val_Dataset
-    mode: MD
+#    mode: MD
+    mode: LQGT
 #    dataroot: datasets/universal/val
+#    dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
     dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
+    dataroot_GT: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/GT
+    dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/LQ
+#    dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/LQ
 
 
 #### network structures
@@ -81,7 +89,8 @@ train:
   weight: 1.0
 
   manual_seed: 0
-  val_freq: !!float 1e4
+  val_freq: 200
+#  val_freq: !!float 1e0
 
 #### logger
 logger:
