@@ -24,8 +24,8 @@ def clip_transform(np_image, resolution=224):
         ToTensor(),
         Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))])(pil_image)
 
-def check_sample_integrity(sample_path):
-    required_files = ['0.png', '1.png', '2.png', '3.png']
+def check_sample_integrity(sample_path,type):
+    required_files = ['0.'+type, '1.'+type, '2.'+type, '3.'+type]
     missing_files = []
     for file in required_files:
         if not os.path.exists(os.path.join(sample_path, file)):
@@ -50,10 +50,12 @@ class MDDataset(data.Dataset):
             sample_folders = []
             all_folders = sorted([f for f in os.listdir(os.path.join(opt["dataroot"], deg_type)) 
                                 if os.path.isdir(os.path.join(opt["dataroot"], deg_type, f))])
-            
+            # img_type = os.listdir(os.path.join(opt["dataroot"], deg_type,'1'))[0].split('.')[-1]
+            img_type = os.listdir((os.path.join(opt["dataroot"], deg_type)+'/'+os.listdir(os.path.join(opt["dataroot"], deg_type))[0]))[0].split('.')[-1]
+            self.img_type = img_type
             for folder in all_folders:
                 folder_path = os.path.join(opt["dataroot"], deg_type, folder)
-                is_complete, missing = check_sample_integrity(folder_path)
+                is_complete, missing = check_sample_integrity(folder_path,self.img_type)
                 if is_complete:
                     sample_folders.append(folder)
                 else:
@@ -81,13 +83,14 @@ class MDDataset(data.Dataset):
         sample_path = os.path.join(self.opt["dataroot"], deg_type, sample_folder)
 
         # 读取GT图片
-        GT_path = os.path.join(sample_path, "0.png")
+        self.img_type = os.listdir(sample_path)[0].split('.')[-1]
+        GT_path = os.path.join(sample_path, "0."+self.img_type)
         img_GT = util.read_img(None, GT_path, None)  # return: Numpy float32, HWC, BGR, [0,1]
 
         # 读取所有LQ图片
         img_LQ_list = []
         for i in range(1, 4):  # 读取1.png, 2.png, 3.png
-            LQ_path = os.path.join(sample_path, f"{i}.png")
+            LQ_path = os.path.join(sample_path, f"{i}."+self.img_type)
             img_LQ = util.read_img(None, LQ_path, None)
             img_LQ_list.append(img_LQ)
 

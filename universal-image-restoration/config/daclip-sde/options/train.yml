@@ -6,7 +6,11 @@ model: denoising
 #distortion: [hazy_stage,rainy]
 #distortion: [rainy]
 #distortion: [noisy]
-distortion: [rain]
+#distortion: [rain]
+#distortion: [hazy]
+#distortion: [noisy_cbsd_400]
+#distortion: [snow]
+distortion: [noisy_wed_800,snow,rain]
 gpu_ids: [0,1]
 
 sde:
@@ -46,8 +50,14 @@ datasets:
 #    dataroot: datasets/universal/val
 #    dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
     dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
-    dataroot_GT: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/GT
-    dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/LQ
+    dataroot_GT: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT
+    dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/mid
+    is_universal: true
+    dataroot_universal: [[/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT,/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/LQ],
+    [/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT,/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/mid],
+    [/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/GT,/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/LQ]]
+
+
 #    dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/LQ
 
 
@@ -89,7 +99,8 @@ train:
   weight: 1.0
 
   manual_seed: 0
-  val_freq: 200
+  val_freq: 10000
+#  val_freq: 200
 #  val_freq: !!float 1e0
 
 #### logger

@@ -31,8 +31,12 @@ device = model.device
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/daclip_ViT-B-32.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_latest.pt'
-# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/411_epoch_20.pt'
-opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
+opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/411_epoch_20.pt'
+# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
+# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_snow.pt'
+# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
+
+
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/stageCLIP_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_13/checkpoints/epoch_latest.pt'
 clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
 clip_model = clip_model.to(device)

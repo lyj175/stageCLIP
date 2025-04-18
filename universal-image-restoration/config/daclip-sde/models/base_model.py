@@ -100,8 +100,10 @@ class BaseModel:
         # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/lastest_EMA.pth')#TODO pretrained/universal-ir.pth
         # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/lastest_EMA.pth')#TODO pretrained/universal-ir.pth
         # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/30000_G.pth')#TODO pretrained/universal-ir.pth
+        load_net = torch.load('/sde/411_40000_G_noisy.pth')#TODO pretrained/universal-ir.pth
         # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/411_40000_G.pth')#TODO pretrained/universal-ir.pth
-        load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/411_40000_G.pth')#TODO pretrained/universal-ir.pth
+        # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/120000_G_snow.pth')#TODO pretrained/universal-ir.pth
+        # load_net = torch.load('/home/lee/PycharmProjects/stageCLIP/sde/150000_G_rain.pth')#TODO pretrained/universal-ir.pth
         load_net_clean = OrderedDict()  # remove unnecessary 'module.'
         for k, v in load_net.items():
             if k.startswith("module."):

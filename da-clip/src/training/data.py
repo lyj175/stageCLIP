@@ -96,11 +96,20 @@ class CsvDataset(Dataset):
         texts = []
         #TODO 指定数据集父目录
         # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/noisy/'
-        parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/rain/'
+        # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/rain/'
+        # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/hazy/'
+        # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/noisy_cbsd_400/'
+        # parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/snow/'
+        parent_path = '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/train/'
+        # img_format = os.listdir(parent_path+os.listdir(parent_path)[0])[0].split('.')[-1]
+        img_format = os.listdir(parent_path+folder_path)[0].split('.')[-1]
+
         # 加载4张图片
         for i in range(4):
             # img_path = os.path.join(parent_path+folder_path+'/', f"{str(i)}.png")
-            img_path = f'{parent_path}{folder_path}/{str(i)}.png'
+            #TODO 指定图像格式
+            # img_path = f'{parent_path}{folder_path}/{str(i)}.png'
+            img_path = f'{parent_path}{folder_path}/{str(i)}.{img_format}'
             image = Image.open(img_path).convert('RGB')
 
             if self.da and self.crop and random.random() > 0.2:
