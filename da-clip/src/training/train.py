@@ -98,7 +98,7 @@ def train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist
 
         if args.accum_freq == 1:
             with autocast():
-                #TODO ！！！DaCLIP
+                #TODO CLIP train
                 model_out = model(images, texts)
                 logit_scale = model_out["logit_scale"]
 

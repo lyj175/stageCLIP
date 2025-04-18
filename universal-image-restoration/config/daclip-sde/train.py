@@ -416,7 +416,7 @@ def main():
                         idx = 0
                         avg_psnr = 0
                         avg_ssim = 0
-                        .0
+
                         for _, val_data in enumerate(data_load):
                             # LQ, GT, deg_type = val_data["LQ"], val_data["GT"], val_data["type"]
                             LQ, GT = val_data["LQ"], val_data["GT"]
