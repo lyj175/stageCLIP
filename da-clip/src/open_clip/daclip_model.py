@@ -86,10 +86,22 @@ class DaCLIP(nn.Module):
             self,
             image: Optional[torch.Tensor] = None,
             text: Optional[torch.Tensor] = None,
+            adjust_region = None
     ):
-        (caption, degradation) = text.chunk(2, dim=-1) if text is not None else (None, None)
+        # (caption, degradation) = text.chunk(2, dim=-1) if text is not None else (None, None)
+        ad_r = []
+        if adjust_region is not None and adjust_region[0] is not None:
+            target = adjust_region[0].unsqueeze(1)
+            target = self.encode_text(target, normalize=True)
+            far_from = adjust_region[1].unsqueeze(1)
+            far_from = self.encode_text(far_from, normalize=True)
+            ad_r.append(target)
+            ad_r.append(far_from)
+
+        caption = text
         image_features, image_degra_features = self.encode_image(image, control=True, normalize=True) if image is not None else None
         text_features = self.encode_text(caption, normalize=True) if text is not None else None
+
         # text_degra_features = self.encode_text(degradation, normalize=True) if degradation is not None else None
 
         #TODO clip冻结visual/controller调参Visual/
@@ -104,7 +116,8 @@ class DaCLIP(nn.Module):
             "image_features": image_features,  # clip冻结visual controlled
             "text_features": text_features,  # caption text
             "image_degra_features": image_degra_features,  # controller调参Visual
-            "logit_scale": self.logit_scale.exp()
+            "logit_scale": self.logit_scale.exp(),
+            "adjust_region": ad_r,
         }
 
 

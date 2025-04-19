@@ -49,6 +49,9 @@ class CsvDataset(Dataset):
         # self.crop = crop
         logging.debug(f'Loading csv data from {input_filename}.')
         df = pd.read_csv(input_filename)
+        self.de_far_from = {'noisy':['An artifact-free image with no noise,grain,pixelation,hot pixels,etc.','A photo riddled with noise,grain,pixelation,etc'],
+                            'rain':['A clean image completely free of raindrops,rain streaks,or storm-related artifacts.','An image heavily affected by raindrops,rain streaks,and storm-related artifacts.'],
+                            'snow':['A clean image completely free of snow,snowflakes,flurries and other snow effects.','An image heavily affected by snow, snowflakes, and other snow-related effects.']}
 
         # 获取文件夹路径和描述
         self.folder_paths = df['folder_path'].tolist()
@@ -104,11 +107,23 @@ class CsvDataset(Dataset):
         # img_format = os.listdir(parent_path+os.listdir(parent_path)[0])[0].split('.')[-1]
         img_format = os.listdir(parent_path+folder_path)[0].split('.')[-1]
 
-        # 加载4张图片
+        de_far_from = ''
+        target_region = ''
+        if 'noisy' in self.folder_paths[idx]:
+            de_far_from = self.de_far_from['noisy'][1]
+            target_region = self.de_far_from['noisy'][0]
+        elif 'snow' in self.folder_paths[idx]:
+            de_far_from = self.de_far_from['snow'][1]
+            target_region = self.de_far_from['snow'][0]
+        elif 'rain' in self.folder_paths[idx]:
+            de_far_from = self.de_far_from['rain'][1]
+            target_region = self.de_far_from['rain'][0]
+        # 加载4张stage图片
         for i in range(4):
             # img_path = os.path.join(parent_path+folder_path+'/', f"{str(i)}.png")
             #TODO 指定图像格式
             # img_path = f'{parent_path}{folder_path}/{str(i)}.png'
+
             img_path = f'{parent_path}{folder_path}/{str(i)}.{img_format}'
             image = Image.open(img_path).convert('RGB')
 
@@ -124,10 +139,12 @@ class CsvDataset(Dataset):
             if self.da:
                 # 临时写死去雾
                 caption = text
-                degradation = 'hazy'
+                # degradation = 'hazy'
                 caption = self.tokenize([caption])[0]
-                degradation = self.tokenize([degradation])[0]
-                text = torch.cat([caption, degradation], dim=0)
+                # degradation = self.tokenize([degradation])[0]
+                # text = torch.cat([caption, degradation], dim=0)
+                # text = torch.cat(caption, dim=0)
+                text = caption
             else:
                 text = self.tokenize([text])[0]
             texts.append(text)
@@ -137,7 +154,7 @@ class CsvDataset(Dataset):
         # 将文本堆叠成[4,seq_len]的形状
         texts = torch.stack(texts)
 
-        return images, texts
+        return images, texts , [self.tokenize([target_region])[0],self.tokenize([de_far_from])[0]]
 
 
 class SharedEpoch:

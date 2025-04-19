@@ -117,7 +117,7 @@ class ClipLoss(nn.Module):
         
         return logits_per_image, logits_per_text
 
-    def forward(self, image_features, text_features, deg_img, logit_scale, output_dict=False):
+    def forward(self, image_features, text_features, deg_img, logit_scale, output_dict=False,de_region=None):
         # device = image_features.device
 
         # logits_per_image, logits_per_text = self.get_logits(image_features, text_features, logit_scale)
@@ -139,8 +139,57 @@ class ClipLoss(nn.Module):
         #              ) / 2
         #
         # return {"contrastive_loss": total_loss} if output_dict else total_loss
-
         device = image_features.device
+
+        de_region_loss = 0
+        if  de_region is not None and len(de_region)>0:
+            target_region = de_region[0].squeeze(dim=1)
+            deg_rg = de_region[1].squeeze(dim=1)
+            #target better small
+            pos_loss = 0
+            for j in range(deg_img.shape[1]):
+                deg_i = deg_img[:, j, :]
+                logits_target, logits_d = self.get_logits(target_region, deg_i, logit_scale)
+                labels = self.get_ground_truth(device, logits_target.shape[0])
+
+                pos_loss += (F.cross_entropy(logits_target, labels) +
+                               F.cross_entropy(logits_d, labels)) / 2
+            # target better big
+            neg_score = 0
+            for j in range(deg_img.shape[1]):
+                deg_i = deg_img[:, j, :]
+                logits_reg, logits_d = self.get_logits(deg_rg, deg_i, logit_scale)
+                labels = self.get_ground_truth(device, logits_reg.shape[0])
+
+                # 退化文本区域特征与退化图像交叉熵
+                neg_score += (F.cross_entropy(logits_reg, labels) +
+                               F.cross_entropy(logits_d, labels)) / 2
+            de_region_loss = pos_loss/neg_score
+
+            # de_region = de_region.squeeze(dim=1)
+            # logits_target_i,logits_deg_region = self.get_logits(image_features, de_region, logit_scale)
+            # logits_target_t,logits_deg_region_ = self.get_logits(text_features[:,0,:], de_region, logit_scale)
+            # g_t_dr = self.get_ground_truth(device, logits_deg_region.shape[0])
+            # pos_i = (F.cross_entropy(logits_target_i, g_t_dr) +
+            #                F.cross_entropy(logits_deg_region, g_t_dr)) / 2
+            # pos_t = (F.cross_entropy(logits_target_t, g_t_dr) +
+            #                F.cross_entropy(logits_deg_region_, g_t_dr)) / 2
+            #
+            # neg = 0
+            # for i in range(0,3):
+            #     logits_de_i,log_rd = self.get_logits(deg_img[:,i,:], de_region, logit_scale)
+            #     neg_ = (F.cross_entropy(logits_de_i, g_t_dr) +
+            #              F.cross_entropy(log_rd, g_t_dr)) / 2
+            #     neg += neg_
+            # #de text features information cau
+            # for i in range(1,4):
+            #     logits_de_i,log_rd = self.get_logits(text_features[:,i,:], de_region, logit_scale)
+            #     neg_ = (F.cross_entropy(logits_de_i, g_t_dr) +
+            #              F.cross_entropy(log_rd, g_t_dr)) / 2
+            #     neg += neg_
+            # de_region_loss = (pos_i+pos_t)/neg
+
+
         total_loss = 0.0
 
         # 计算基础图像-文本损失（text_features的4个视图）
@@ -170,8 +219,8 @@ class ClipLoss(nn.Module):
         total_loss = total_loss.contiguous()
 
         if output_dict:
-            return {"contrastive_loss": total_loss}
-        return total_loss
+            return {"contrastive_loss": total_loss,"de_region_loss":de_region_loss}
+        return total_loss,de_region_loss
 
 
 class CoCaLoss(ClipLoss):
@@ -244,16 +293,19 @@ class DaClipLoss(ClipLoss):
             deg_images,
             deg_texts,
             logit_scale,
-            output_dict = False
+            output_dict = False,
+            de_region = None
     ):
-        clip_loss = super().forward(image_features=flag, deg_img=deg_images,text_features=deg_texts, logit_scale=logit_scale)
+        clip_loss,region_rg_loss = super().forward(image_features=flag, deg_img=deg_images,text_features=deg_texts, logit_scale=logit_scale,de_region=de_region)
         # degra_loss = super().forward(image_degra_features, text_degra_features, logit_scale)
 
         # if output_dict:
         #     return {"contrastive_loss": clip_loss, "degra_loss": degra_loss}
         #
         # return clip_loss, degra_loss
-        return {"contrastive_loss": clip_loss.contiguous()}
+        # return {"contrastive_loss": clip_loss.contiguous()}
+        return {"contrastive_loss": clip_loss.contiguous(),
+                "de_region_loss":region_rg_loss}
 
 
 class DistillClipLoss(ClipLoss):

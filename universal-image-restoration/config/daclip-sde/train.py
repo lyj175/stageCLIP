@@ -238,7 +238,9 @@ def main():
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_hazy.pt'
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_noisy_cbsd400.pt'
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_snow.pt'
-        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal_region_de.pt'
+        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal_adjust_region.pt'
         clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32',pretrained=opt['path']['daclip'])
         # clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
     else:
@@ -458,6 +460,7 @@ def main():
                                 break
 
                         avg_psnr = avg_psnr / idx
+                        avg_ssim = avg_ssim / idx
 
 
                         # log

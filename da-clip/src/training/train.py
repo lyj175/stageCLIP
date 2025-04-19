@@ -89,9 +89,14 @@ def train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist
         if not args.skip_scheduler:
             scheduler(step)
 
-        images, texts = batch
+        images, texts ,adjust_region = batch
         images = images.to(device=device, dtype=input_dtype, non_blocking=True)
         texts = texts.to(device=device, non_blocking=True)
+        target_region = adjust_region[0]
+        far_from_de = adjust_region[1]
+
+        target_region = target_region.to(device=device, non_blocking=True)
+        far_from_de = far_from_de.to(device=device, non_blocking=True)
 
         data_time_m.update(time.time() - end)
         optimizer.zero_grad()
@@ -99,21 +104,22 @@ def train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist
         if args.accum_freq == 1:
             with autocast():
                 #TODO CLIP train
-                model_out = model(images, texts)
+                model_out = model(images, texts ,adjust_region = [target_region,far_from_de])
                 logit_scale = model_out["logit_scale"]
 
                 flag = model_out['image_features'][:,0,:]
                 deg_images = model_out['image_degra_features'][:, 1:4, :]
                 deg_texts = model_out['text_features']
                 logit_scale = model_out['logit_scale']
+                adjust__ = model_out['adjust_region']
 
                 if args.distill:
                     with torch.no_grad():
                         dist_model_out = dist_model(images, texts)
                     model_out.update({f'dist_{k}' : v for k, v in dist_model_out.items()})
                 # losses = loss(**model_out, output_dict=True)
-                losses = loss(flag,deg_images,deg_texts,logit_scale=logit_scale, output_dict=True)
-
+                losses = loss(flag,deg_images,deg_texts,logit_scale=logit_scale, output_dict=True,de_region=adjust__)
+                # print(losses)
                 total_loss = sum(losses.values())
                 # total_loss = losses
                 losses["loss"] = total_loss
