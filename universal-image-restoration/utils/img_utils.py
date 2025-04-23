@@ -232,3 +232,4 @@ def calculate_ssim(img1, img2):
             return ssim(np.squeeze(img1), np.squeeze(img2))
     else:
         raise ValueError("Wrong input image dimensions.")
+

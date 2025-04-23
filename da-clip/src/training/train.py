@@ -89,6 +89,16 @@ def train_one_epoch(model, data, loss, epoch, optimizer, scaler, scheduler, dist
         if not args.skip_scheduler:
             scheduler(step)
 
+        images, texts = batch
+
+        #TODO ablation
+        # images[1] = images[0]
+        # images[2] = images[0]
+        # images[3] = images[0]
+        # texts[1] = texts[0]
+        # texts[2] = texts[0]
+        # texts[3] = texts[0]
+
         images, texts ,adjust_region = batch
         images = images.to(device=device, dtype=input_dtype, non_blocking=True)
         texts = texts.to(device=device, non_blocking=True)

@@ -94,6 +94,10 @@ class MDDataset(data.Dataset):
             img_LQ = util.read_img(None, LQ_path, None)
             img_LQ_list.append(img_LQ)
 
+        #TODO Ablation
+        # img_LQ_list[1] = img_GT
+        # img_LQ_list[2] = img_GT
+
         if self.opt["phase"] == "train":
             H, W, C = img_GT.shape
 

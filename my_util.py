@@ -664,6 +664,196 @@ def add_haze(image_path, output_path, beta=3.5, airlight_rgb=(210, 215, 220), si
 
 
 # --- Main Execution with Command-Line Arguments ---
+
+def print_tred(path):
+    import re
+    from collections import defaultdict
+
+    # 日志文件路径
+    log_file = path
+
+    # 修改正则表达式，使之更灵活，支持多余空格和逗号等情况
+    line_pattern = re.compile(
+        r"epoch:\s*(\d+),\s*iter:\s*([\d,]+),\s*psnr:\s*([\d.]+),\s*ssim:\s*([\d.]+)"
+    )
+
+    # 存储每个类别数据
+    categories = defaultdict(list)
+
+    # 读取文件并分类
+    with open(log_file, "r") as f:
+        lines = f.readlines()
+        if not lines:
+            print("日志文件为空或者未被正确读取，请检查文件路径或文件内容是否正确。")
+        for i, line in enumerate(lines):
+            # 尝试匹配当前行
+            match = line_pattern.search(line)
+            if match:
+                epoch, iteration, psnr, ssim = match.groups()
+                # 将 iter 中的逗号移除并转换为整数
+                iteration = int(iteration.replace(",", ""))
+                psnr, ssim = float(psnr), float(ssim)
+                category = (i % 3) + 1  # 分类规则
+                categories[category].append({
+                    "line": line.strip(),
+                    "epoch": int(epoch),
+                    "iteration": iteration,
+                    "psnr": psnr,
+                    "ssim": ssim,
+                    "index": i + 1
+                })
+            else:
+                # 如果匹配失败，打印出无法解析的行作为调试信息
+                print(f"无法解析的行 (行号 {i + 1}): {line.strip()}")
+
+    # 检查是否成功分类
+    if not categories:
+        print("日志内容未成功分类，请检查日志文件格式是否符合要求（epoch, iter, psnr, ssim 是否正确显示）。")
+
+    # 计算每个类别的最大值并打印结果
+    results = []
+    for category, data in categories.items():
+        if not data:
+            print(f"类别 {category} 没有数据，请检查文件内容。")
+            continue
+        max_psnr = max(data, key=lambda x: x["psnr"])["psnr"]
+        max_ssim = max(data, key=lambda x: x["ssim"])["ssim"]
+        for entry in data:
+            psnr_diff = max_psnr - entry["psnr"]
+            ssim_diff = max_ssim - entry["ssim"]
+            # 添加标记
+            entry["psnr_diff"] = psnr_diff
+            entry["ssim_diff"] = ssim_diff
+            entry["max_psnr"] = max_psnr
+            entry["max_ssim"] = max_ssim
+            results.append(entry)
+
+    # 按类别打印分类结果
+    for category in sorted(categories.keys()):
+        print(f"Category {category}:")
+        for entry in filter(lambda x: (x["index"] - 1) % 3 + 1 == category, results):
+            print(
+                f'Line {entry["index"]}: {entry["line"]} | '
+                f'Max_PSNR: {entry["max_psnr"]:.6f} (Diff: {entry["psnr_diff"]:.6f}), '
+                f'Max_SSIM: {entry["max_ssim"]:.6f} (Diff: {entry["ssim_diff"]:.6f})'
+            )
+        print()
+
+def print_trend_2(log_file):
+    import re
+    from collections import defaultdict
+
+    # 日志文件路径
+    # log_file = "/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log"
+    # 定义正则表达式，支持空格和逗号格式
+    line_pattern = re.compile(
+        r"epoch:\s*(\d+),\s*iter:\s*([\d,]+),\s*psnr:\s*([\d.]+),\s*ssim:\s*([\d.]+)"
+    )
+
+    # 分类存储每类数据
+    categories = defaultdict(list)
+
+    # 读取日志并按类别分类
+    with open(log_file, "r") as f:
+        lines = f.readlines()
+        if not lines:
+            print("日志文件为空或者未能正确读取，请检查路径或文件内容。")
+        for i, line in enumerate(lines):
+            match = line_pattern.search(line)
+            if match:
+                epoch, iteration, psnr, ssim = match.groups()
+                iteration = int(iteration.replace(",", ""))  # 去掉千位分隔符，转化为整数
+                psnr, ssim = float(psnr), float(ssim)
+                category = (i % 3) + 1  # 分类规则
+                categories[category].append({
+                    "line": line.strip(),
+                    "epoch": int(epoch),
+                    "iteration": iteration,
+                    "psnr": psnr,
+                    "ssim": ssim,
+                    "index": i + 1
+                })
+            else:
+                # 输出无法解析的行
+                print(f"无法解析的行 (行号 {i + 1}): {line.strip()}")
+
+    # 如果无数据退出
+    if not categories:
+        print("日志内容未成功分类，请检查日志内容格式和正则表达式。")
+
+    # 遍历每个类别，实时计算并更新最佳值
+    for category in sorted(categories.keys()):
+        print(f"Category {category}:")
+
+        # 记录实时最佳值
+        current_best_psnr = float("-inf")
+        current_best_ssim = float("-inf")
+
+        for entry in categories[category]:
+            psnr, ssim = entry["psnr"], entry["ssim"]
+
+            # 判断最佳值并更新，同时计算差值
+            psnr_diff = psnr - current_best_psnr  # 当前行与当前最佳 PSNR 的差值
+            ssim_diff = ssim - current_best_ssim  # 当前行与当前最佳 SSIM 的差值
+
+            # 更新最佳值
+            if psnr > current_best_psnr:
+                current_best_psnr = psnr  # 更新最佳 PSNR
+            if ssim > current_best_ssim:
+                current_best_ssim = ssim  # 更新最佳 SSIM
+
+            # 打印结果，差值用正负号表示
+            print(
+                f'Line {entry["index"]}: {entry["line"]} | '
+                f'当前最佳 PSNR: {current_best_psnr:.6f} (差值: {psnr_diff:+.6f}), '
+                f'当前最佳 SSIM: {current_best_ssim:.6f} (差值: {ssim_diff:+.6f})'
+            )
+        print()
+import pyiqa
+def calculate_fid(lq_path,gt_path):
+    fid_metric = pyiqa.create_metric('fid', device='cuda:0')
+    fid = fid_metric(lq_path,gt_path)
+    return fid
+
+import os
+from PIL import Image
+
+
+import os
+from PIL import Image
+
+
+def convert_tif_to_png_and_delete(directory_path):
+    """
+    将指定目录中的所有 .tif 图像转换为 .png 格式，并删除原始 .tif 文件。
+    :param directory_path: 包含 .tif 文件的目录路径
+    """
+    # 检查目录是否存在
+    if not os.path.isdir(directory_path):
+        print(f"目录 {directory_path} 不存在")
+        return
+
+    # 遍历目录中所有文件
+    for filename in os.listdir(directory_path):
+        if filename.lower().endswith('.tif'):  # 找到 .tif 文件
+            tif_path = os.path.join(directory_path, filename)  # 原 .tif 文件路径
+            png_filename = os.path.splitext(filename)[0] + '.png'  # 替换为 .png 后缀
+            png_path = os.path.join(directory_path, png_filename)  # 导出 .png 文件路径
+
+            try:
+                # 打开 .tif 文件并保存为 .png
+                with Image.open(tif_path) as img:
+                    img.save(png_path, format='PNG')
+                print(f"已将 {filename} 转换为 {png_filename}")
+
+                # 删除原始 .tif 文件
+                os.remove(tif_path)
+                print(f"已删除原始文件: {filename}")
+            except Exception as e:
+                print(f"转换 {filename} 或删除原文件失败: {e}")
+
+
+
 if __name__ == "__main__":
     #TODO add rain
     # parser = argparse.ArgumentParser(description="Synthesize a rainy image by adding weighted rain streaks.")
@@ -726,6 +916,28 @@ if __name__ == "__main__":
     #     '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/SRRS/SRRS-2021/test/snow_4.jpg',
     # 0.5)
 
+    # print_tred('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log')
+    # print_trend_2('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log')
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_50'))
+    #                     # '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT'))
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_25'))
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_15'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/rain/LQ'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/noisy/LQ_15'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/snow/low'))
+
+
+    # convert_tif_to_png_and_delete('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/origin')
     pass
 
 
