@@ -238,7 +238,8 @@ def main():
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_hazy.pt'
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_noisy_cbsd400.pt'
         # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_snow.pt'
-        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
+        # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
+        opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/logs/2025_04_22-23_40_46-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_20.pt'
         clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32',pretrained=opt['path']['daclip'])
         # clip_model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=opt['path']['daclip'])
     else:
@@ -292,9 +293,12 @@ def main():
                 break
 
             LQ, GT, deg_type = train_data["LQ"], train_data["GT"], train_data["type"]
+
+
             # LQ = LQ[0]
-            deg_token = tokenizer(deg_type).to(device)
+            # deg_token = tokenizer(deg_type).to(device)
             img4clip = train_data["LQ_clip"].to(device)
+
             with torch.no_grad(), torch.cuda.amp.autocast():
                 image_context, degra_context = clip_model.encode_image(img4clip, control=True)
                 image_context = image_context.float()#TODO clip关键引导内容

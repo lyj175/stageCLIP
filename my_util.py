@@ -809,6 +809,49 @@ def print_trend_2(log_file):
                 f'当前最佳 SSIM: {current_best_ssim:.6f} (差值: {ssim_diff:+.6f})'
             )
         print()
+import pyiqa
+def calculate_fid(lq_path,gt_path):
+    fid_metric = pyiqa.create_metric('fid', device='cuda:0')
+    fid = fid_metric(lq_path,gt_path)
+    return fid
+
+import os
+from PIL import Image
+
+
+import os
+from PIL import Image
+
+
+def convert_tif_to_png_and_delete(directory_path):
+    """
+    将指定目录中的所有 .tif 图像转换为 .png 格式，并删除原始 .tif 文件。
+    :param directory_path: 包含 .tif 文件的目录路径
+    """
+    # 检查目录是否存在
+    if not os.path.isdir(directory_path):
+        print(f"目录 {directory_path} 不存在")
+        return
+
+    # 遍历目录中所有文件
+    for filename in os.listdir(directory_path):
+        if filename.lower().endswith('.tif'):  # 找到 .tif 文件
+            tif_path = os.path.join(directory_path, filename)  # 原 .tif 文件路径
+            png_filename = os.path.splitext(filename)[0] + '.png'  # 替换为 .png 后缀
+            png_path = os.path.join(directory_path, png_filename)  # 导出 .png 文件路径
+
+            try:
+                # 打开 .tif 文件并保存为 .png
+                with Image.open(tif_path) as img:
+                    img.save(png_path, format='PNG')
+                print(f"已将 {filename} 转换为 {png_filename}")
+
+                # 删除原始 .tif 文件
+                os.remove(tif_path)
+                print(f"已删除原始文件: {filename}")
+            except Exception as e:
+                print(f"转换 {filename} 或删除原文件失败: {e}")
+
 
 
 if __name__ == "__main__":
@@ -874,8 +917,27 @@ if __name__ == "__main__":
     # 0.5)
 
     # print_tred('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log')
-    print_trend_2('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log')
+    # print_trend_2('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/config/daclip-sde/log/universal-ir/val_universal-ir_250418-183755.log')
 
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_50'))
+    #                     # '/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT'))
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_25'))
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/noisy/LQ_15'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/rain/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/rain/LQ'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/noisy/LQ_15'))
+
+    # print(calculate_fid('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT',
+    #                     '/home/lee/PycharmProjects/stageCLIP/val_result/single_stage/snow/low'))
+
+
+    # convert_tif_to_png_and_delete('/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/origin')
     pass
 
 

@@ -1,4 +1,5 @@
 import argparse
+import csv
 import logging
 import os.path
 import sys
@@ -20,6 +21,27 @@ import utils as util
 from data import create_dataloader, create_dataset
 from data.util import bgr2ycbcr
 
+import pyiqa
+def calculate_metric(lq_path,gt_path):
+    psnr_metric = pyiqa.create_metric('psnr', device=device)
+    ssim_metric = pyiqa.create_metric('ssim', device=device)
+    lpips_metric = pyiqa.create_metric('lpips', device=device)
+    # fid_metric = pyiqa.create_metric('fid', device=device)
+
+    psnr = psnr_metric(lq_path,gt_path)
+    ssim = ssim_metric(lq_path,gt_path)
+    lpips = lpips_metric(lq_path,gt_path)
+
+    psnr = float(psnr)
+    ssim = float(ssim)
+    lpips = float(lpips)
+    # lpips = lpips_metric(lq_path,gt_path)
+    return [psnr,ssim,lpips]
+def calculate_fid(lq_path,gt_path):
+    fid_metric = pyiqa.create_metric('fid', device=device)
+    fid = fid_metric(lq_path,gt_path)
+    return fid
+
 #### options
 parser = argparse.ArgumentParser()
 # parser.add_argument("-opt", type=str, required=True, help="Path to options YMAL file.")
@@ -37,6 +59,9 @@ util.mkdirs(
         and "resume" not in key
     )
 )
+out_put = '/home/lee/PycharmProjects/stageCLIP/val_result/'+opt['distortion'][0] + '/' +opt['datasets']['test1']['dataroot_LQ'].split('/')[-1]
+if not os.path.exists(out_put):
+    os.makedirs(out_put)
 
 os.system("rm ./result")
 os.symlink(os.path.join(opt["path"]["results_root"], ".."), "./result")
@@ -99,136 +124,150 @@ for test_loader in test_loaders:
     test_results["lpips"] = []
     test_times = []
 
-    for i, test_data in enumerate(test_loader):
-        single_img_psnr = []
-        single_img_ssim = []
-        single_img_psnr_y = []
-        single_img_ssim_y = []
-        need_GT = False if test_loader.dataset.opt["dataroot_GT"] is None else True
-        img_path = test_data["GT_path"][0] if need_GT else test_data["LQ_path"][0]
-        img_name = os.path.splitext(os.path.basename(img_path))[0]
+    csv_path = '/home/lee/PycharmProjects/stageCLIP/val_result/' + opt['distortion'][0] +'_' +opt['datasets']['test1']['dataroot_LQ'].split('/')[-1] +'.csv'
+    with open(csv_path, 'w', newline='') as csvfile:
+        psnr_list = []
+        ssim_list = []
+        lpips_list = []
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['img', 'psnr', 'ssim', 'lpips'])
+        for i, test_data in enumerate(test_loader):
+            single_img_psnr = []
+            single_img_ssim = []
+            single_img_psnr_y = []
+            single_img_ssim_y = []
+            need_GT = False if test_loader.dataset.opt["dataroot_GT"] is None else True
+            img_path = test_data["GT_path"][0] if need_GT else test_data["LQ_path"][0]
+            img_name = os.path.splitext(os.path.basename(img_path))[0]
 
-        #### input dataset_LQ
-        LQ, GT = test_data["LQ"], test_data["GT"]
-        img4clip = test_data["LQ_clip"].to(device)
-        with torch.no_grad(), torch.cuda.amp.autocast():
-            image_context, degra_context = clip_model.encode_image(img4clip, control=True)
-            image_context = image_context.float()
-            degra_context = degra_context.float()
+            #### input dataset_LQ
+            LQ, GT = test_data["LQ"], test_data["GT"]
+            img4clip = test_data["LQ_clip"].to(device)
+            with torch.no_grad(), torch.cuda.amp.autocast():
+                image_context, degra_context = clip_model.encode_image(img4clip, control=True)
+                image_context = image_context.float()
+                degra_context = degra_context.float()
 
-        noisy_state = sde.noise_state(LQ)
+            noisy_state = sde.noise_state(LQ)
 
-        model.feed_data(noisy_state, LQ, GT, text_context=degra_context, image_context=image_context)
-        tic = time.time()
-        model.test(sde, mode=sampling_mode, save_states=False)
-        toc = time.time()
-        test_times.append(toc - tic)
+            model.feed_data(noisy_state, LQ, GT, text_context=degra_context, image_context=image_context)
+            tic = time.time()
+            model.test(sde, mode=sampling_mode, save_states=False)
+            toc = time.time()
+            test_times.append(toc - tic)
 
-        visuals = model.get_current_visuals()
-        SR_img = visuals["Output"]
-        output = util.tensor2img(SR_img.squeeze())  # uint8
-        LQ_ = util.tensor2img(visuals["Input"].squeeze())  # uint8
-        GT_ = util.tensor2img(visuals["GT"].squeeze())  # uint8
-        
-        suffix = opt["suffix"]
-        if suffix:
-            save_img_path = os.path.join(dataset_dir, img_name + suffix + ".png")
-        else:
-            save_img_path = os.path.join(dataset_dir, img_name + ".png")
-        util.save_img(output, save_img_path)
+            visuals = model.get_current_visuals()
+            SR_img = visuals["Output"]
+            output = util.tensor2img(SR_img.squeeze())  # uint8
+            LQ_ = util.tensor2img(visuals["Input"].squeeze())  # uint8
+            GT_ = util.tensor2img(visuals["GT"].squeeze())  # uint8
 
-        # remove it if you only want to save output images
-        # LQ_img_path = os.path.join(dataset_dir, img_name + "_LQ.png")
-        # GT_img_path = os.path.join(dataset_dir, img_name + "_HQ.png")
-        # util.save_img(LQ_, LQ_img_path)
-        # util.save_img(GT_, GT_img_path)
-
-        if need_GT:
-            gt_img = GT_ / 255.0
-            sr_img = output / 255.0
-
-            crop_border = opt["crop_border"] if opt["crop_border"] else scale
-            if crop_border == 0:
-                cropped_sr_img = sr_img
-                cropped_gt_img = gt_img
+            suffix = opt["suffix"]
+            if suffix:
+                # save_img_path = os.path.join(dataset_dir, img_name + suffix + ".png")
+                save_img_path = os.path.join(out_put, img_name + "." + test_data['LQ_path'][0].split('.')[-1])
             else:
-                cropped_sr_img = sr_img[
-                    crop_border:-crop_border, crop_border:-crop_border
-                ]
-                cropped_gt_img = gt_img[
-                    crop_border:-crop_border, crop_border:-crop_border
-                ]
+                # save_img_path = os.path.join(dataset_dir, img_name + ".png")
+                save_img_path = os.path.join(out_put, img_name + "." + test_data['LQ_path'][0].split('.')[-1])
+            util.save_img(output, save_img_path)
 
-            psnr = util.calculate_psnr(cropped_sr_img * 255, cropped_gt_img * 255)
-            ssim = util.calculate_ssim(cropped_sr_img * 255, cropped_gt_img * 255)
-            lp_score = lpips_fn(
-                GT.to(device) * 2 - 1, SR_img.to(device) * 2 - 1).squeeze().item()
+            res = calculate_metric(test_data['GT_path'][0],save_img_path)
+            csv_writer.writerow([img_name] + res)
+            psnr_list.append(res[0])
+            ssim_list.append(res[1])
+            lpips_list.append(res[2])
+            # remove it if you only want to save output images
+            # LQ_img_path = os.path.join(dataset_dir, img_name + "_LQ.png")
+            # GT_img_path = os.path.join(dataset_dir, img_name + "_HQ.png")
+            # util.save_img(LQ_, LQ_img_path)
+            # util.save_img(GT_, GT_img_path)
 
-            test_results["psnr"].append(psnr)
-            test_results["ssim"].append(ssim)
-            test_results["lpips"].append(lp_score)
+            if need_GT:
+                gt_img = GT_ / 255.0
+                sr_img = output / 255.0
 
-            if len(gt_img.shape) == 3:
-                if gt_img.shape[2] == 3:  # RGB image
-                    sr_img_y = bgr2ycbcr(sr_img, only_y=True)
-                    gt_img_y = bgr2ycbcr(gt_img, only_y=True)
-                    if crop_border == 0:
-                        cropped_sr_img_y = sr_img_y
-                        cropped_gt_img_y = gt_img_y
-                    else:
-                        cropped_sr_img_y = sr_img_y[
-                            crop_border:-crop_border, crop_border:-crop_border
-                        ]
-                        cropped_gt_img_y = gt_img_y[
-                            crop_border:-crop_border, crop_border:-crop_border
-                        ]
-                    psnr_y = util.calculate_psnr(
-                        cropped_sr_img_y * 255, cropped_gt_img_y * 255
-                    )
-                    ssim_y = util.calculate_ssim(
-                        cropped_sr_img_y * 255, cropped_gt_img_y * 255
-                    )
+                crop_border = opt["crop_border"] if opt["crop_border"] else scale
+                if crop_border == 0:
+                    cropped_sr_img = sr_img
+                    cropped_gt_img = gt_img
+                else:
+                    cropped_sr_img = sr_img[
+                        crop_border:-crop_border, crop_border:-crop_border
+                    ]
+                    cropped_gt_img = gt_img[
+                        crop_border:-crop_border, crop_border:-crop_border
+                    ]
 
-                    test_results["psnr_y"].append(psnr_y)
-                    test_results["ssim_y"].append(ssim_y)
+                psnr = util.calculate_psnr(cropped_sr_img * 255, cropped_gt_img * 255)
+                ssim = util.calculate_ssim(cropped_sr_img * 255, cropped_gt_img * 255)
+                lp_score = lpips_fn(
+                    GT.to(device) * 2 - 1, SR_img.to(device) * 2 - 1).squeeze().item()
 
+                test_results["psnr"].append(psnr)
+                test_results["ssim"].append(ssim)
+                test_results["lpips"].append(lp_score)
+
+                if len(gt_img.shape) == 3:
+                    if gt_img.shape[2] == 3:  # RGB image
+                        sr_img_y = bgr2ycbcr(sr_img, only_y=True)
+                        gt_img_y = bgr2ycbcr(gt_img, only_y=True)
+                        if crop_border == 0:
+                            cropped_sr_img_y = sr_img_y
+                            cropped_gt_img_y = gt_img_y
+                        else:
+                            cropped_sr_img_y = sr_img_y[
+                                crop_border:-crop_border, crop_border:-crop_border
+                            ]
+                            cropped_gt_img_y = gt_img_y[
+                                crop_border:-crop_border, crop_border:-crop_border
+                            ]
+                        psnr_y = util.calculate_psnr(
+                            cropped_sr_img_y * 255, cropped_gt_img_y * 255
+                        )
+                        ssim_y = util.calculate_ssim(
+                            cropped_sr_img_y * 255, cropped_gt_img_y * 255
+                        )
+
+                        test_results["psnr_y"].append(psnr_y)
+                        test_results["ssim_y"].append(ssim_y)
+
+                        logger.info(
+                            "img{:3d}:{:15s} - PSNR: {:.6f} dB; SSIM: {:.6f}; LPIPS: {:.6f}; PSNR_Y: {:.6f} dB; SSIM_Y: {:.6f}.".format(
+                                i, img_name, psnr, ssim, lp_score, psnr_y, ssim_y
+                            )
+                        )
+                else:
                     logger.info(
-                        "img{:3d}:{:15s} - PSNR: {:.6f} dB; SSIM: {:.6f}; LPIPS: {:.6f}; PSNR_Y: {:.6f} dB; SSIM_Y: {:.6f}.".format(
-                            i, img_name, psnr, ssim, lp_score, psnr_y, ssim_y
+                        "img:{:15s} - PSNR: {:.6f} dB; SSIM: {:.6f}.".format(
+                            img_name, psnr, ssim
                         )
                     )
+
+                    test_results["psnr_y"].append(psnr)
+                    test_results["ssim_y"].append(ssim)
             else:
-                logger.info(
-                    "img:{:15s} - PSNR: {:.6f} dB; SSIM: {:.6f}.".format(
-                        img_name, psnr, ssim
-                    )
-                )
-
-                test_results["psnr_y"].append(psnr)
-                test_results["ssim_y"].append(ssim)
-        else:
-            logger.info(img_name)
-
-
-    ave_lpips = sum(test_results["lpips"]) / len(test_results["lpips"])
-    ave_psnr = sum(test_results["psnr"]) / len(test_results["psnr"])
-    ave_ssim = sum(test_results["ssim"]) / len(test_results["ssim"])
-    logger.info(
-        "----Average PSNR/SSIM results for {}----\n\tPSNR: {:.6f} dB; SSIM: {:.6f}\n".format(
-            test_set_name, ave_psnr, ave_ssim
-        )
-    )
-    if test_results["psnr_y"] and test_results["ssim_y"]:
-        ave_psnr_y = sum(test_results["psnr_y"]) / len(test_results["psnr_y"])
-        ave_ssim_y = sum(test_results["ssim_y"]) / len(test_results["ssim_y"])
+                logger.info(img_name)
+        csv_writer.writerow(['', np.mean(psnr_list), np.mean(ssim_list), np.mean(lpips_list)])
+        print(f'**************{np.mean(psnr_list)}\t{np.mean(ssim_list)}\t{np.mean(lpips_list)}\n****************')
+        ave_lpips = sum(test_results["lpips"]) / len(test_results["lpips"])
+        ave_psnr = sum(test_results["psnr"]) / len(test_results["psnr"])
+        ave_ssim = sum(test_results["ssim"]) / len(test_results["ssim"])
         logger.info(
-            "----Y channel, average PSNR/SSIM----\n\tPSNR_Y: {:.6f} dB; SSIM_Y: {:.6f}\n".format(
-                ave_psnr_y, ave_ssim_y
+            "----Average PSNR/SSIM results for {}----\n\tPSNR: {:.6f} dB; SSIM: {:.6f}\n".format(
+                test_set_name, ave_psnr, ave_ssim
             )
         )
+        if test_results["psnr_y"] and test_results["ssim_y"]:
+            ave_psnr_y = sum(test_results["psnr_y"]) / len(test_results["psnr_y"])
+            ave_ssim_y = sum(test_results["ssim_y"]) / len(test_results["ssim_y"])
+            logger.info(
+                "----Y channel, average PSNR/SSIM----\n\tPSNR_Y: {:.6f} dB; SSIM_Y: {:.6f}\n".format(
+                    ave_psnr_y, ave_ssim_y
+                )
+            )
 
-    logger.info(
-            "----average LPIPS\t: {:.6f}\n".format(ave_lpips)
-        )
+        logger.info(
+                "----average LPIPS\t: {:.6f}\n".format(ave_lpips)
+            )
 
-    print(f"average test time: {np.mean(test_times):.4f}")
+        print(f"average test time: {np.mean(test_times):.4f}")

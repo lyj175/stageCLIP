@@ -510,7 +510,7 @@ if __name__ == "__main__":
         "batch-size": 16,
         "lr": 2e-5,
         "wd": 0.05,
-        "epochs": 60,
+        "epochs": 20,
         "workers": 8,
         "model": "daclip_ViT-B-32",
         # "name": "daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_47",

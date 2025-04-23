@@ -31,7 +31,9 @@ device = model.device
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/logs/daclip_ViT-B-32-2023-09_b512x1_lr2e-5_e30_test_5/checkpoints/epoch_30.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/daclip_ViT-B-32.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_latest.pt'
-opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/411_epoch_20.pt'
+# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/411_epoch_20.pt'
+# opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
+opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/da-clip/src/training/logs/2025_04_22-23_40_46-model_daclip_ViT-B-32-lr_2e-05-b_16-j_8-p_amp/checkpoints/epoch_20.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_snow.pt'
 # opt['path']['daclip'] = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_30_rain.pt'
@@ -68,6 +70,7 @@ def restore(image):
     model.test(sde)
     visuals = model.get_current_visuals(need_GT=False)
     output = util.tensor2img(visuals["Output"].squeeze())
+    # print(f'psnr:{util.calculate_psnr(util.tensor2img(visuals["Input"].squeeze()), util.tensor2img(visuals["Output"].squeeze()))}')
     return output[:, :, [2, 1, 0]]
 
 examples=[os.path.join(os.path.dirname(__file__), f"images/{i}.jpg") for i in range(1, 20)]

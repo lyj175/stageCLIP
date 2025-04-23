@@ -22,7 +22,8 @@ def get_paths_from_images(path):
     assert images, '{:s} has no valid image file'.format(path)
     return images
 
-checkpoint = 'logs/daclip_ViT-B-32_b768x4_lr3e-5_e50/checkpoints/epoch_50.pt'
+# checkpoint = 'logs/daclip_ViT-B-32_b768x4_lr3e-5_e50/checkpoints/epoch_50.pt'
+checkpoint = '/home/lee/PycharmProjects/stageCLIP/stageCLIP/epoch_60_universal.pt'
 
 model, preprocess = open_clip.create_model_from_pretrained('daclip_ViT-B-32', pretrained=checkpoint)
 tokenizer = open_clip.get_tokenizer('ViT-B-32')
