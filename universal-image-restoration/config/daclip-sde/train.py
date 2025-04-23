@@ -304,7 +304,7 @@ def main():
 
             # TODO sequence of guidance
             weights = torch.rand(3)
-            weights = weights / weights.sum()
+            # weights = weights / weights.sum()
             LQ = sum(w * t for w, t in zip(weights, LQ))
 
             timesteps, states = sde.generate_random_states(x0=GT, mu=LQ)
