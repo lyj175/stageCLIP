@@ -52,6 +52,7 @@ datasets:
     dataroot: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val
     dataroot_GT: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT
     dataroot_LQ: /home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/mid
+
     is_universal: true
     dataroot_universal: [[/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/GT,/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/noisy/LQ],
     [/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/GT,/home/lee/PycharmProjects/stageCLIP/universal-image-restoration/datasets/universal/val/snow/mid],
